@@ -1,0 +1,8 @@
+# Configuracao local do frontend (contem a URL e a chave anon do SEU projeto).
+# A chave anon e publica, mas cada um usa a do proprio projeto, entao nao vai pro Git.
+assets/config.js
+
+# Dependencias / sistema
+node_modules/
+.DS_Store
+*.log

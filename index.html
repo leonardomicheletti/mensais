@@ -1,0 +1,1300 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Controle dos Mensais</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+  /* Layout: faixa azul-marinho com as abas Painel e Justificativas; cada aba ocupa a coluna central. */
+  :root {
+    --page-bg: #f3f4f6;
+    --font-anthropic-sans: "Public Sans", "Segoe UI", system-ui, sans-serif;
+    --font-anthropic-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+    --cds-gap-xs: 4px; --cds-gap-sm: 8px; --cds-gap-md: 16px; --cds-gap-lg: 24px; --cds-gap-xl: 32px;
+    --cds-pad-xs: 4px; --cds-pad-sm: 8px; --cds-pad-md: 12px; --cds-pad-lg: 20px; --cds-pad-xl: 28px;
+    --cds-font-size-caption: 12.5px; --cds-font-size-body: 14.5px; --cds-font-size-heading: 16.5px; --cds-font-size-title: 26px;
+    --cds-font-weight-medium: 600; --cds-radius: 10px; --cds-dur-slow: .3s; --cds-ease-out: cubic-bezier(.2, .7, .2, 1);
+  }
+  :root[data-tema="escuro"] { --page-bg: #000000; color-scheme: dark; }
+  body { background: var(--page-bg); font-family: var(--font-anthropic-sans); }
+  .dash-skeleton { color: transparent !important; background: color-mix(in srgb, var(--color-fg) 8%, transparent); border-radius: 6px; min-width: 4ch; display: inline-block; }
+
+  /* abas */
+  .cm-tabs { position: relative; z-index: 1; display: flex; gap: 4px; margin-top: var(--cds-gap-lg); border-bottom: 1px solid rgba(255, 255, 255, .16); }
+  .cm-tab { font: inherit; font-size: 14px; font-weight: 600; color: rgba(255, 255, 255, .66); background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 14px 9px; margin-bottom: -1px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+  .cm-tab:hover { color: #fff; }
+  .cm-tab[aria-selected="true"] { color: #fff; border-bottom-color: var(--cm-orange); }
+  .cm-tab:focus-visible { outline: 2px solid var(--cm-orange); outline-offset: 2px; border-radius: 4px; }
+  .cm-badge { font-size: 11px; font-weight: 700; background: var(--cm-orange); color: #10203B; border-radius: 999px; padding: 1px 7px; }
+  .cm-badge[hidden] { display: none; }
+  .cm-justif button { font: inherit; color: var(--color-fg); font-weight: 600; border: 1px solid var(--color-border-line); background: var(--color-panel); border-radius: 999px; padding: 4px 12px; white-space: nowrap; cursor: pointer; }
+  .cm-justif button:hover { border-color: var(--color-fg-muted); }
+  .cm-aba { display: flex; flex-direction: column; gap: var(--cds-gap-lg); }
+  .ac-hits { display: flex; flex-direction: column; gap: 6px; }
+  .ac-hit, .ac-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .ac-hit { padding: 8px 0; border-top: 1px solid var(--color-border-line); }
+  .ac-nome { display: flex; flex-direction: column; min-width: 0; }
+  .ac-nome span { font-size: 12.5px; color: var(--color-fg-muted); overflow-wrap: anywhere; }
+  .ac-lista { display: flex; flex-direction: column; gap: 12px; }
+  .ac-item { border: 1px solid var(--color-border-line); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; background: var(--color-panel); }
+  .ac-areas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 6px 14px; }
+  .ac-chk { display: flex; gap: 8px; align-items: center; font-size: 13.5px; cursor: pointer; }
+  .ac-chk input { accent-color: var(--cm-orange); }
+  .ac-chk.ac-todas { grid-column: 1 / -1; font-weight: 600; padding-bottom: 6px; border-bottom: 1px dashed var(--color-border-line); }
+  .ac-chk:has(input:disabled) { opacity: .5; }
+  .jv .btn.bad-b { color: var(--color-bad); border-color: var(--color-bad); }
+  .cm-espera p { margin: 0; }
+  .cm-wrap.so-areas #alerta-depara { display: none !important; }
+  .cm-wrap.uma-area [data-picker-area], .cm-wrap.uma-area #cm-limpa, .cm-wrap.uma-area #cm-voltar-contas { display: none !important; }
+  .cm-intro { position: relative; z-index: 1; margin: var(--cds-gap-lg) 0 0; padding-top: var(--cds-pad-md); border-top: 1px solid rgba(255, 255, 255, .14); font-size: var(--cds-font-size-heading); line-height: 1.5; color: rgba(255, 255, 255, .86); max-width: 62rem; }
+
+  .cm {
+    --cm-navy: #10203B;
+    --cm-orange: #F47920;
+    --cm-brand: color-mix(in srgb, #1B3463 72%, var(--color-fg));
+    --cm-ok: #2f9e5f;
+    --cm-warn: #e6a700;
+    --cm-bad: #d64545;
+    --cm-track: color-mix(in srgb, var(--color-fg) 9%, transparent);
+    --cm-sem: color-mix(in srgb, var(--color-fg) 42%, transparent);
+    --cm-orc: color-mix(in srgb, var(--color-fg) 20%, transparent);
+    font-family: var(--font-anthropic-sans); color: var(--color-fg);
+    display: flex; flex-direction: column; gap: var(--cds-gap-lg);
+    max-width: 88rem; margin-inline: auto;
+  }
+  .cm b { font-weight: 600; }
+
+  /* ---------- cabeçalho */
+  .cm-hero { background: var(--cm-navy); color: #fff; border-radius: var(--cds-radius); padding: var(--cds-pad-xl) var(--cds-pad-xl) var(--cds-pad-lg); position: relative; overflow: hidden; }
+  .cm-hero::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--cm-orange); }
+  .cm-hero::after { content: ""; position: absolute; right: -6rem; top: -6rem; width: 18rem; height: 18rem; border-radius: 50%; border: 2.5rem solid rgba(244, 121, 32, .10); }
+  .cm-hero-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--cds-gap-md); position: relative; z-index: 1; }
+  .cm-eyebrow { font-size: var(--cds-font-size-caption); letter-spacing: .14em; text-transform: uppercase; color: rgba(255, 255, 255, .62); }
+  .cm-eyebrow strong { color: var(--cm-orange); font-weight: 600; }
+  .cm-title { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: calc(var(--cds-font-size-title) * 1.35); line-height: 1.1; margin: var(--cds-gap-xs) 0 0; color: #fff; }
+  .cm-period { font-size: var(--cds-font-size-body); color: rgba(255, 255, 255, .78); margin-top: var(--cds-gap-xs); }
+  .cm-pick { display: flex; flex-direction: column; gap: 4px; font-size: var(--cds-font-size-caption); color: rgba(255, 255, 255, .62); text-transform: uppercase; letter-spacing: .08em; }
+  .cm-pick select { font: inherit; text-transform: none; letter-spacing: 0; font-size: var(--cds-font-size-body); color: #fff; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .28); border-radius: var(--cds-radius); padding: var(--cds-pad-xs) var(--cds-pad-md); min-width: 11rem; cursor: pointer; }
+  .cm-pick select option { color: #10203B; background: #fff; }
+  .cm-summary { position: relative; z-index: 1; margin: var(--cds-gap-lg) 0 0; padding-top: var(--cds-pad-md); border-top: 1px solid rgba(255, 255, 255, .14); font-size: var(--cds-font-size-heading); line-height: 1.5; color: rgba(255, 255, 255, .86); max-width: 62rem; }
+  .cm-summary b { color: #fff; }
+  .cm-summary .cm-hl { color: var(--cm-orange); }
+  .cm-sample { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 6px; margin-top: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: rgba(255, 255, 255, .62); }
+  .cm-sample::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--cm-orange); }
+
+  /* ---------- cartões */
+  .cm-grid { display: grid; gap: var(--cds-gap-md); grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }
+  .cm-kpis { display: grid; gap: var(--cds-gap-md); grid-template-columns: repeat(auto-fit, minmax(min(100%, 14.5rem), 1fr)); }
+  .cm-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); position: relative; min-width: 0; }
+  .cm-card h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; }
+  .cm-note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: 4px 0 var(--cds-gap-md); }
+  .cm-section { display: flex; align-items: baseline; gap: var(--cds-gap-sm); margin: var(--cds-gap-sm) 0 calc(-1 * var(--cds-gap-sm)); }
+  .cm-section h3 { margin: 0; font-size: var(--cds-font-size-caption); text-transform: uppercase; letter-spacing: .12em; color: var(--color-fg-muted); font-weight: 600; }
+  .cm-section::after { content: ""; flex: 1; height: 1px; background: var(--color-border-line); }
+
+  .cm-kpi { display: flex; flex-direction: column; gap: 6px; border-top: 3px solid var(--cm-brand); }
+  .cm-kpi.cm-accent { border-top-color: var(--cm-orange); }
+  .cm-kpi-lab { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); text-transform: uppercase; letter-spacing: .08em; }
+  .cm-kpi-val { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: calc(var(--cds-font-size-title) * 1.15); line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .cm-kpi-sub { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; }
+  .cm-kpi-sub b { color: var(--color-fg); }
+  .cm-bar { height: 8px; border-radius: 4px; background: var(--cm-track); position: relative; overflow: hidden; margin-top: 4px; }
+  .cm-bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--cm-ok); width: 0; transition: width var(--cds-dur-slow) var(--cds-ease-out); }
+  .cm-bar.cm-is-warn > i { background: var(--cm-warn); }
+  .cm-bar.cm-is-bad > i { background: var(--cm-bad); }
+  .cm-bar-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-fg-muted); }
+  .cm-split { display: flex; gap: 4px; height: 8px; margin-top: 4px; }
+  .cm-split > i { border-radius: 4px; min-width: 0; }
+  .cm-dots { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .cm-dots span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--sw); }
+  .cm-neg { color: var(--color-bad); }
+
+  /* ---------- destaques */
+  .cm-high { display: flex; flex-direction: column; gap: var(--cds-gap-sm); }
+  .cm-high-item { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--cds-gap-md); padding: var(--cds-pad-sm) var(--cds-pad-md); border-radius: var(--cds-radius); background: color-mix(in srgb, var(--sw) 9%, transparent); border-left: 3px solid var(--sw); }
+  .cm-high-item .n { font-weight: 600; }
+  .cm-high-item .v { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+  .cm-high-item .d { grid-column: 1 / -1; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; }
+  .cm-high-empty { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); padding: var(--cds-pad-sm) 0; }
+  .cm-alert { display: flex; align-items: center; gap: var(--cds-gap-sm); margin-top: var(--cds-gap-md); padding-top: var(--cds-pad-sm); border-top: 1px solid var(--color-border-line); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .cm-alert b { color: var(--color-fg); font-variant-numeric: tabular-nums; }
+
+  /* ---------- gráficos */
+  .cm-chart { width: 100%; min-height: 16rem; }
+  .cm-chart svg { display: block; overflow: visible; }
+  .cm-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin-bottom: var(--cds-gap-sm); }
+  .cm-legend span::before { content: ""; display: inline-block; width: 12px; height: 8px; border-radius: 3px; margin-right: 6px; vertical-align: 0; background: var(--sw); }
+  .cm-legend .cm-lg-line::before { width: 2px; height: 12px; border-radius: 1px; vertical-align: -2px; }
+  .cm-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); white-space: nowrap; z-index: 3; display: none; font-variant-numeric: tabular-nums; }
+  .cm-tip .cm-tip-h { color: var(--cds-text-secondary); margin-bottom: 2px; }
+  .cm-tip .cm-sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+
+  /* ---------- tabelas */
+  .cm-scroll { max-height: 36rem; overflow: auto; }
+  .cm-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+  .cm-table th { position: sticky; top: 0; z-index: 1; background: var(--color-panel); text-align: right; font-weight: 600; color: var(--color-fg-muted); text-transform: uppercase; letter-spacing: .06em; font-size: 11px; padding: var(--cds-pad-sm); border-bottom: 2px solid var(--color-border-line); white-space: nowrap; }
+  .cm-table td { text-align: right; padding: var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); white-space: nowrap; vertical-align: middle; }
+  .cm-table tbody tr:hover td { background: color-mix(in srgb, var(--color-fg) 4%, transparent); }
+  .cm-table th.cm-l, .cm-table td.cm-l { text-align: left; }
+  .cm-table th.cm-c, .cm-table td.cm-c { text-align: center; }
+  .cm-table td.cm-wrap { white-space: normal; min-width: 14rem; }
+  .cm-table td.cm-area { font-weight: 600; font-size: var(--cds-font-size-body); }
+  .cm-table .cm-grp { border-left: 1px solid var(--color-border-line); }
+  .cm-use { display: inline-flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .cm-use .cm-bar { width: 4.5rem; margin: 0; height: 6px; }
+  .cm-pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .02em; border: 1px solid transparent; }
+  .cm-pill-ok { color: var(--color-ok); background: color-mix(in srgb, var(--color-ok) 12%, transparent); }
+  .cm-pill-warn { color: var(--color-warn); background: color-mix(in srgb, var(--cm-warn) 18%, transparent); }
+  .cm-pill-bad { color: var(--color-bad); background: color-mix(in srgb, var(--color-bad) 12%, transparent); }
+  .cm-pill-sem { color: var(--color-fg); background: color-mix(in srgb, var(--color-fg) 10%, transparent); }
+  .cm-pill-none { color: var(--color-fg-muted); border-color: var(--color-border-line); }
+  .cm-hide-narrow { }
+  @media (max-width: 720px) { .cm-hide-narrow { display: none; } .cm-hero { padding: var(--cds-pad-lg); } }
+
+  .cm-foot { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm) var(--cds-gap-lg); padding: 0 var(--cds-pad-xs); }
+
+  [data-dash-source-state=empty] { color: transparent; }
+  [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+  .cm-fail { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 8rem; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .cm-fail::before { content: ""; width: 0.375rem; height: 0.375rem; border-radius: 50%; background: var(--color-bad); }
+  @media (prefers-reduced-motion: no-preference) {
+    .cm-in { animation: cm-fade var(--cds-dur-slow) var(--cds-ease-out) both; }
+    @keyframes cm-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  }
+  @media print { .cm-pick select { border: none; background: none; } .cm-scroll { max-height: none; overflow: visible; } }
+
+  .cm-picks { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--cds-gap-md); position: relative; z-index: 1; }
+  .cm-cardhead { display: flex; align-items: baseline; gap: var(--cds-gap-sm); flex-wrap: wrap; }
+  .cm-back { font: inherit; font-size: var(--cds-font-size-caption); color: var(--color-fg); background: none; border: 1px solid var(--color-border-line); border-radius: 999px; padding: 2px 12px; cursor: pointer; margin-left: auto; }
+  .cm-back:hover { background: color-mix(in srgb, var(--color-fg) 6%, transparent); }
+  .cm-back[hidden] { display: none; }
+  .cm-justif { display: flex; align-items: center; justify-content: space-between; gap: var(--cds-gap-sm); flex-wrap: wrap; margin-top: var(--cds-gap-md); padding: var(--cds-pad-sm) var(--cds-pad-md); border-radius: var(--cds-radius); background: color-mix(in srgb, var(--color-fg) 5%, transparent); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .cm-justif a { color: var(--color-fg); font-weight: 600; text-decoration: none; border: 1px solid var(--color-border-line); background: var(--color-panel); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+  .cm-justif a:hover { border-color: var(--color-fg-muted); }
+
+  /* ---------- tema: fundo branco ou preto */
+  .cm-wrap { background: var(--color-bg); color: var(--color-fg); padding-block: clamp(16px, 3vw, 36px) 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); min-height: 100%; transition: background var(--cds-dur-slow); font-family: var(--font-anthropic-sans); }
+  .cm-wrap.cm-claro {
+    --color-bg: #f3f4f6; --color-panel: #ffffff; --color-fg: #141922; --color-fg-muted: #5d6676; --color-border-line: #e2e5ea;
+    --color-ok: #17784a; --color-warn: #b45a00; --color-bad: #c42b31;
+    --cds-chart-grid: #eceef2; --cds-chart-muted: #c7ccd4; --cds-chart-status-critical: #d2353b;
+    --cds-surface-popover: #ffffff; --cds-border: #d8dce2; --cds-text-secondary: #5d6676; --cds-shadow-popover: 0 6px 20px rgba(16, 32, 59, .14);
+    color-scheme: light;
+  }
+  .cm-wrap.cm-escuro {
+    --color-bg: #000000; --color-panel: #111317; --color-fg: #f2f4f7; --color-fg-muted: #9aa2b1; --color-border-line: #262a31;
+    --color-ok: #4cc38a; --color-warn: #f5a524; --color-bad: #ff5a5f;
+    --cds-chart-grid: #22262d; --cds-chart-muted: #3b414b; --cds-chart-status-critical: #ff5a5f;
+    --cds-surface-popover: #1a1d23; --cds-border: #30353d; --cds-text-secondary: #9aa2b1; --cds-shadow-popover: 0 6px 20px rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+  .cm-wrap.cm-escuro .cm { --cm-ok: #45c47e; --cm-warn: #f2bd2c; --cm-bad: #ff6b6b; --cm-orc: color-mix(in srgb, var(--color-fg) 26%, transparent); }
+  .cm-wrap.cm-escuro .cm-hero { box-shadow: inset 0 0 0 1px #1e2a44; }
+  .cm-tema { width: 34px; height: 34px; flex: none; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .3); background: transparent; color: #fff; cursor: pointer; display: inline-grid; place-items: center; padding: 0; align-self: flex-end; transition: background var(--cds-dur-slow), border-color var(--cds-dur-slow); }
+  .cm-tema:hover { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .6); }
+  .cm-tema:focus-visible { outline: 2px solid var(--cm-orange); outline-offset: 2px; }
+  .cm-tema svg { width: 16px; height: 16px; display: block; }
+  .cm-tema .cm-ic-sol { display: none; }
+  .cm-escuro .cm-tema .cm-ic-lua { display: none; }
+  .cm-escuro .cm-tema .cm-ic-sol { display: block; }
+
+  .cm-table tbody tr.cm-on td { background: color-mix(in srgb, var(--color-fg) 6%, transparent); }
+  .cm-table tbody tr[data-click] { cursor: pointer; }
+  .cm-mode { display: inline-block; margin-left: var(--cds-gap-sm); padding: 2px 10px; border-radius: 999px; font-size: var(--cds-font-size-caption); letter-spacing: 0; text-transform: none; background: var(--cm-orange); color: #fff; vertical-align: middle; }
+  .cm-mode[hidden] { display: none; }
+  .cm-clear { font: inherit; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); background: none; border: 1px solid var(--color-border-line); border-radius: 999px; padding: 2px 10px; cursor: pointer; margin-left: auto; }
+  .cm-clear[hidden] { display: none; }
+  .cm-alert[hidden] { display: none; }
+
+  /* ---------- aba Justificativas (mesmos tokens do painel) */
+  .jv { --j-soft: color-mix(in srgb, var(--color-fg) 5%, var(--color-panel)); --j-field: var(--color-panel);
+        --j-ok-bg: color-mix(in srgb, var(--color-ok) 14%, transparent); --j-warn-bg: color-mix(in srgb, var(--cm-warn) 18%, transparent);
+        --j-bad-bg: color-mix(in srgb, var(--color-bad) 13%, transparent); --j-sem-bg: color-mix(in srgb, var(--color-fg) 8%, transparent);
+        display: flex; flex-direction: column; gap: var(--cds-gap-lg); max-width: 820px; width: 100%; margin-inline: auto; font-size: 15px; line-height: 1.5; }
+  .jv * { box-sizing: border-box; }
+  .jv .step { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: 20px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .jv .step-h { display: flex; align-items: center; gap: 12px; }
+  .jv .step-n { width: 28px; height: 28px; flex: none; border-radius: 50%; background: var(--cm-navy); color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 700; box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-fg) 14%, transparent); }
+  .jv h2 { margin: 0; font-size: 17px; font-weight: 600; }
+  .jv .hint { margin: 0; color: var(--color-fg-muted); font-size: 13px; }
+  .jv .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }
+  .jv label.f { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; min-width: 0; }
+  .jv label.f span.opt { font-weight: 400; color: var(--color-fg-muted); }
+  .jv select, .jv input[type="text"], .jv textarea { font: inherit; font-size: 15px; color: var(--color-fg); background: var(--j-field); border: 1px solid var(--color-border-line); border-radius: 8px; padding: 10px 12px; width: 100%; }
+  .jv textarea { min-height: 110px; resize: vertical; line-height: 1.5; }
+  .jv select:focus-visible, .jv input:focus-visible, .jv textarea:focus-visible, .jv button:focus-visible, .jv a:focus-visible { outline: 2px solid var(--cm-orange); outline-offset: 2px; }
+  .jv select:disabled { opacity: .6; }
+  .jv .figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 1px; background: var(--color-border-line); border: 1px solid var(--color-border-line); border-radius: 8px; overflow: hidden; }
+  .jv .fig { background: var(--j-soft); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+  .jv .fig small { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--color-fg-muted); }
+  .jv .fig strong { font-family: var(--font-mono); font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .jv .fig.is-bad strong { color: var(--color-bad); }
+  .jv .pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .jv .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .jv .pill.ok { color: var(--color-ok); background: var(--j-ok-bg); }
+  .jv .pill.warn { color: var(--color-warn); background: var(--j-warn-bg); }
+  .jv .pill.bad { color: var(--color-bad); background: var(--j-bad-bg); }
+  .jv .pill.sem { color: var(--color-fg-muted); background: var(--j-sem-bg); }
+  .jv .situ { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 14px; margin-top: 12px; }
+  .jv .contas { display: flex; flex-direction: column; gap: 6px; }
+  .jv .contas-h { font-size: 12px; font-weight: 600; color: var(--color-fg-muted); text-transform: uppercase; letter-spacing: .08em; }
+  .jv .conta { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 8px 0; border-top: 1px solid var(--color-border-line); font-size: 14px; }
+  .jv .conta .c { overflow-wrap: anywhere; }
+  .jv .conta .v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-bad); text-align: right; }
+  .jv .conta .d { grid-column: 1 / -1; font-size: 12px; color: var(--color-fg-muted); font-family: var(--font-mono); }
+  .jv .tipos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 10px; }
+  .jv .tipo { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--color-border-line); border-radius: 8px; padding: 12px 14px; cursor: pointer; background: var(--j-field); }
+  .jv .tipo input { margin-top: 4px; accent-color: var(--cm-orange); }
+  .jv .tipo b { display: block; font-size: 14px; }
+  .jv .tipo span span { font-size: 13px; color: var(--color-fg-muted); }
+  .jv .tipo:has(input:checked) { border-color: var(--cm-orange); box-shadow: inset 0 0 0 1px var(--cm-orange); }
+  .jv .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .jv .btn { font: inherit; font-size: 15px; font-weight: 600; border-radius: 8px; padding: 11px 18px; cursor: pointer; border: 1px solid transparent; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+  .jv .btn.primary { background: var(--cm-navy); color: #fff; box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-fg) 14%, transparent); }
+  .jv .btn.primary:hover { background: #1b3463; }
+  .jv .btn.ghost { background: transparent; color: var(--color-fg); border-color: var(--color-border-line); }
+  .jv .btn.ghost:hover { background: var(--j-soft); }
+  .jv .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .jv .msg { font-size: 13px; color: var(--color-fg-muted); }
+  .jv .msg.err { color: var(--color-bad); }
+  .jv .done { border-color: var(--color-ok); }
+  .jv .mailbox { display: flex; flex-direction: column; gap: 8px; }
+  .jv .addr { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; }
+  .jv .addr code { font-family: var(--font-mono); background: var(--j-soft); padding: 4px 8px; border-radius: 6px; user-select: all; overflow-wrap: anywhere; }
+  .jv .mailtext { font-family: var(--font-mono); font-size: 13px; white-space: pre-wrap; background: var(--j-soft); border: 1px solid var(--color-border-line); border-radius: 8px; padding: 14px; max-height: 320px; overflow: auto; overflow-wrap: anywhere; }
+  .jv .list-h { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+  .jv .filters { display: flex; flex-wrap: wrap; gap: 10px; }
+  .jv .filters select { width: auto; min-width: 160px; font-size: 14px; padding: 8px 10px; }
+  .jv .items { display: flex; flex-direction: column; gap: 10px; }
+  .jv .item { border: 1px solid var(--color-border-line); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; background: var(--j-field); min-width: 0; }
+  .jv .item-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  .jv .item-top b { font-size: 15px; }
+  .jv .item-meta { font-size: 12px; color: var(--color-fg-muted); }
+  .jv .item-nums { display: flex; flex-wrap: wrap; gap: 4px 16px; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .jv .item p { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+  .jv .item p em { font-style: normal; color: var(--color-fg-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; display: block; }
+  .jv .decide { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 8px; border-top: 1px dashed var(--color-border-line); }
+  .jv .decide input { flex: 1 1 220px; font-size: 14px; padding: 8px 10px; }
+  .jv .decide .btn { font-size: 13px; padding: 7px 12px; }
+  .jv .decide .ok-b { color: var(--color-ok); border-color: var(--color-ok); }
+  .jv .decide .bad-b { color: var(--color-bad); border-color: var(--color-bad); }
+  .jv .empty { color: var(--color-fg-muted); font-size: 14px; padding: 20px; text-align: center; border: 1px dashed var(--color-border-line); border-radius: 8px; }
+  .jv .notice { background: var(--j-warn-bg); color: var(--color-warn); border-radius: 8px; padding: 12px 14px; font-size: 14px; }
+</style>
+
+
+
+<div class="cm-wrap cm-claro" id="cm-wrap">
+<div class="cm">
+  <header class="cm-hero" id="topo">
+    <div class="cm-hero-top">
+      <div>
+        <div class="cm-eyebrow"><strong>Norte</strong> · Controladoria</div>
+        <h1 class="cm-title">Controle dos Mensais</h1>
+        <div class="cm-period" id="periodo">Orçado x Realizado por área</div>
+      </div>
+      <div class="cm-picks">
+        <label class="cm-pick" data-so-painel data-picker-area>Área
+          <select id="cm-area" aria-label="Área" data-source="por_area"></select>
+        </label>
+        <label class="cm-pick" data-so-painel>Período em análise
+          <select id="cm-mes" aria-label="Período em análise" data-source="por_mes"></select>
+        </label>
+        <button class="cm-tema" id="cm-tema" type="button" aria-label="Mudar para fundo preto" title="Mudar para fundo preto">
+          <svg class="cm-ic-lua" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          <svg class="cm-ic-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        </button>
+      </div>
+    </div>
+    <p class="cm-summary" id="resumo" data-so-painel><span class="dash-skeleton">Carregando dados…</span></p>
+    <p class="cm-intro" id="intro-justif" hidden>Use esta aba quando a área gastar mais que o orçado no mês ou precisar de verba adicional. A justificativa fica registrada para a Controladoria analisar, e o e-mail sai pronto.</p>
+    <p class="cm-intro" id="intro-acessos" hidden>Libere cada pessoa para a área dela. Quem tem acesso a uma área vê só os números e as justificativas daquela área. Quem não foi liberado vê uma tela de espera.</p>
+    <nav class="cm-tabs" id="cm-tabs" role="tablist" aria-label="Seções">
+      <a class="cm-tab" role="tab" id="tab-painel" href="#painel" aria-controls="aba-painel" aria-selected="true">Painel</a>
+      <a class="cm-tab" role="tab" id="tab-justificativas" href="#justificativas" aria-controls="aba-justificativas" aria-selected="false">Justificativas <span class="cm-badge" id="badge-pend" hidden title="Aguardando análise">0</span></a>
+      <a class="cm-tab" role="tab" id="tab-acessos" href="#acessos" aria-controls="aba-acessos" aria-selected="false" hidden>Acessos <span class="cm-badge" id="badge-acessos" hidden title="Pessoas aguardando liberação">0</span></a>
+    </nav>
+  </header>
+
+  <div id="aba-painel" role="tabpanel" aria-labelledby="tab-painel" class="cm-aba">
+
+  <div class="cm-section"><h3 id="sec-mes">Resultado</h3></div>
+  <section class="cm-kpis" id="numeros">
+    <div class="cm-card cm-kpi" id="kpi-1"><div class="cm-kpi-val dash-skeleton">—</div></div>
+    <div class="cm-card cm-kpi" id="kpi-2"><div class="cm-kpi-val dash-skeleton">—</div></div>
+    <div class="cm-card cm-kpi" id="kpi-3"><div class="cm-kpi-val dash-skeleton">—</div></div>
+    <div class="cm-card cm-kpi cm-accent" id="kpi-4"><div class="cm-kpi-val dash-skeleton">—</div></div>
+  </section>
+
+  <section class="cm-grid" id="graficos">
+    <div class="cm-card" id="card-areas">
+      <h2 id="tit-areas">Comparativo entre áreas</h2>
+      <p class="cm-note" id="nota-areas">Clique numa área para ver só ela.</p>
+      <div class="cm-legend" id="leg-areas"></div>
+      <div class="cm-chart" id="graf-areas" data-source="por_area"></div>
+      <div class="cm-tip" id="tip-areas"></div>
+    </div>
+    <div class="cm-card" id="card-destaques">
+      <h2 id="tit-destaques">Pontos de atenção</h2>
+      <p class="cm-note" id="nota-destaques">Áreas com maior estouro.</p>
+      <div class="cm-high" id="destaques" data-source="por_area"></div>
+      <div class="cm-justif" id="justificar"><span id="justificar-txt">Área acima do orçado ou precisando de mais verba no mês?</span><button type="button" id="b-justificar">Justificar ou pedir verba →</button></div>
+      <div class="cm-alert" id="alerta-depara"><span id="lab-depara">Gasto em contas sem orçamento aprovado:</span> <b id="val-depara" data-source="sem_orc_acum" data-field="valor_mes">—</b></div>
+    </div>
+  </section>
+
+  <div class="cm-section"><h3 id="sec-evol">Evolução no ano</h3></div>
+  <section class="cm-card" id="card-meses">
+    <h2 id="tit-meses">Orçado x realizado mês a mês</h2>
+    <p class="cm-note" id="nota-meses">Total da empresa. Clique num mês para analisá-lo.</p>
+    <div class="cm-legend"><span style="--sw: var(--cm-orc)">Orçado</span><span style="--sw: var(--cm-ok)">Realizado dentro</span><span style="--sw: var(--cm-warn)">Realizado em atenção</span><span style="--sw: var(--cm-bad)">Realizado acima</span></div>
+    <div class="cm-chart" id="graf-meses" data-source="por_mes"></div>
+    <div class="cm-tip" id="tip-meses"></div>
+  </section>
+
+  <div class="cm-section"><h3 id="sec-det">Detalhe por área</h3></div>
+  <section class="cm-card" id="tabela-areas">
+    <div class="cm-cardhead"><h2 id="tit-tabela">Orçado x realizado por área</h2><button class="cm-back" id="cm-limpa" type="button" hidden>← Voltar para todas as áreas</button></div>
+    <p class="cm-note" id="nota-tabela">Clique numa área para ver só ela.</p>
+    <div class="cm-scroll">
+      <table class="cm-table" id="tb-areas" data-source="por_area" data-row-key="area,mes_ref">
+        <thead><tr id="th-row"></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="cm-card" id="card-contas">
+    <div class="cm-cardhead"><h2 id="tit-contas">Por conta</h2><button class="cm-back" id="cm-voltar-contas" type="button" hidden>← Voltar para todas as áreas</button></div>
+    <p class="cm-note" id="nota-contas">Contas com maior diferença entre realizado e orçado.</p>
+    <div class="cm-scroll">
+      <table class="cm-table" id="tb-contas" data-source="por_conta" data-row-key="id,mes_ref">
+        <thead><tr id="th-contas"></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+
+  </div>
+
+  <div id="aba-justificativas" role="tabpanel" aria-labelledby="tab-justificativas" class="cm-aba" hidden>
+
+  <div class="jv">
+    <div class="notice" id="aviso" hidden></div>
+
+    <section class="step" id="passo-1" aria-labelledby="t1">
+      <div class="step-h"><span class="step-n">1</span><h2 id="t1">Área e mês</h2></div>
+      <div class="row">
+        <label class="f" for="f-area">Área
+          <select id="f-area" disabled><option>Carregando áreas…</option></select>
+        </label>
+        <label class="f" for="f-mes">Mês
+          <select id="f-mes" disabled><option>Carregando meses…</option></select>
+        </label>
+      </div>
+      <div id="situacao" hidden>
+        <div class="figs">
+          <div class="fig"><small>Orçado no mês</small><strong id="v-orc">—</strong></div>
+          <div class="fig"><small>Realizado no mês</small><strong id="v-real">—</strong></div>
+          <div class="fig" id="fig-dif"><small id="l-dif">Diferença</small><strong id="v-dif">—</strong></div>
+          <div class="fig"><small>Uso do orçamento</small><strong id="v-uso">—</strong></div>
+        </div>
+        <div class="situ"><span id="v-status" class="pill sem">—</span><span id="v-ano" class="msg"></span></div>
+      </div>
+      <div class="contas" id="contas" hidden>
+        <div class="contas-h">Contas acima do orçado no mês</div>
+        <div id="contas-lista"></div>
+      </div>
+    </section>
+
+    <section class="step" id="passo-2" aria-labelledby="t2">
+      <div class="step-h"><span class="step-n">2</span><h2 id="t2">Justificativa</h2></div>
+      <div class="tipos" role="radiogroup" aria-label="Tipo de registro">
+        <label class="tipo" for="tp-estouro"><input type="radio" name="tipo" id="tp-estouro" value="estouro" checked><span><b>Justificar gasto acima do orçado</b><span>Explicar por que o mês fechou acima da verba.</span></span></label>
+        <label class="tipo" for="tp-verba"><input type="radio" name="tipo" id="tp-verba" value="verba"><span><b>Pedir verba adicional</b><span>Solicitar mais verba para o mês.</span></span></label>
+      </div>
+      <label class="f" for="f-valor" id="campo-valor" hidden>Valor adicional solicitado (R$)
+        <input type="text" id="f-valor" inputmode="decimal" placeholder="Ex.: 15.000,00" autocomplete="off">
+      </label>
+      <label class="f" for="f-motivo">Motivo
+        <textarea id="f-motivo" placeholder="O que gerou o gasto acima do orçado? Ex.: renovação anual do contrato de segurança antecipada para outubro."></textarea>
+      </label>
+      <label class="f" for="f-acao">O que será feito nos próximos meses <span class="opt">(opcional)</span>
+        <textarea id="f-acao" style="min-height:80px" placeholder="Ex.: compensar reduzindo a verba de novembro em R$ 10 mil."></textarea>
+      </label>
+    </section>
+
+    <section class="step" id="passo-3" aria-labelledby="t3">
+      <div class="step-h"><span class="step-n">3</span><h2 id="t3">Registrar e enviar</h2></div>
+      <p class="hint">Ao registrar, a justificativa fica salva nesta página para a Controladoria analisar. Depois, envie o e-mail que aparece abaixo.</p>
+      <div class="actions">
+        <button class="btn primary" id="b-registrar" type="button" disabled>Registrar justificativa</button>
+        <span class="msg" id="m-registrar"></span>
+      </div>
+    </section>
+
+    <section class="step done" id="enviado" hidden aria-labelledby="t4">
+      <div class="step-h"><span class="step-n" style="background:var(--color-ok)">✓</span><h2 id="t4">Justificativa registrada</h2></div>
+      <p class="hint">Agora envie o e-mail para a Controladoria. Se o botão não abrir seu e-mail, copie o texto e envie para o endereço abaixo.</p>
+      <div class="mailbox">
+        <div class="addr">Para: <code id="m-para">—</code></div>
+        <div class="addr">Assunto: <code id="m-assunto">—</code></div>
+        <div class="mailtext" id="m-corpo"></div>
+      </div>
+      <div class="actions">
+        <a class="btn primary" id="b-mail" href="#" target="_blank" rel="noopener">Abrir e-mail</a>
+        <button class="btn ghost" id="b-copiar" type="button">Copiar texto</button>
+        <button class="btn ghost" id="b-nova" type="button">Registrar outra</button>
+        <span class="msg" id="m-copiar"></span>
+      </div>
+    </section>
+
+    <section class="step" id="registradas" aria-labelledby="t5">
+      <div class="list-h">
+        <div><h2 id="t5">Justificativas registradas</h2><p class="hint" id="h-lista">Tudo o que as áreas registraram, do mais recente para o mais antigo.</p></div>
+        <div class="filters">
+          <select id="fl-area" aria-label="Filtrar por área"><option value="">Todas as áreas</option></select>
+          <select id="fl-status" aria-label="Filtrar por situação">
+            <option value="">Todas as situações</option>
+            <option value="Aguardando análise">Aguardando análise</option>
+            <option value="Em análise">Em análise</option>
+            <option value="Aprovada">Aprovada</option>
+            <option value="Recusada">Recusada</option>
+          </select>
+        </div>
+      </div>
+      <div class="items" id="lista"><div class="empty">Carregando…</div></div>
+    </section>
+  </div>
+
+  </div>
+
+  <div id="aba-acessos" role="tabpanel" aria-labelledby="tab-acessos" class="cm-aba" hidden>
+    <div class="jv">
+      <section class="step" aria-labelledby="ac-t1">
+        <div class="step-h"><h2 id="ac-t1">Adicionar pessoa</h2></div>
+        <p class="hint">Busque pelo nome ou e-mail de quem trabalha na empresa. Quem abrir esta página sem acesso também aparece na lista abaixo como “Pediu acesso”.</p>
+        <label class="f" for="ac-busca">Nome ou e-mail
+          <input type="text" id="ac-busca" placeholder="Ex.: Mariana, ou mariana@" autocomplete="off">
+        </label>
+        <div class="ac-hits" id="ac-hits"></div>
+      </section>
+      <section class="step" aria-labelledby="ac-t2">
+        <div class="list-h">
+          <div><h2 id="ac-t2">Pessoas e áreas</h2><p class="hint">Marque as áreas que cada pessoa pode ver. “Todas as áreas” serve para diretoria e Controladoria.</p></div>
+          <div class="actions"><button class="btn ghost" id="ac-atualizar" type="button">Atualizar dados de todos</button><span class="msg" id="ac-msg"></span></div>
+        </div>
+        <div class="ac-lista" id="ac-lista"><div class="empty">Carregando…</div></div>
+      </section>
+    </div>
+  </div>
+
+  <section class="cm-espera" id="aguardando" hidden>
+    <div class="jv">
+      <div class="step">
+        <h2>Aguardando liberação</h2>
+        <p id="aguardando-txt"></p>
+        <p class="hint" id="aguardando-quem"></p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="cm-foot">
+    <span>Fonte: planilha Análise mensais (Orçado x Realizado) · orçado = aba Orçamento · realizado = EME4 (aba Consulta) · áreas = classificação SETOR_AJUSTADO do Fechamento mensal 2026</span>
+    <span>Critério: atenção a partir de 90% de uso · acima do orçamento a partir de 100% · "sem orçamento" = gasto em área ou conta sem orçado aprovado</span>
+    <span>Ano inteiro: compara o realizado com o orçado do mesmo período (até o último mês fechado)</span>
+    <span>Elaboração: Controladoria</span>
+  </footer>
+</div>
+
+</div>
+
+<script>
+// ---------- dados e filtros do painel (substitui o motor do tipo Dashboard)
+(function () {
+  const RAW = { mensal: { status: 'loading', data: [] }, contas: { status: 'loading', data: [] }, sem_orcamento: { status: 'loading', data: [] } };
+  const CALC = {};
+  const calcs = [];
+  const cbs = [];
+  let P = { mes: null, area: null, tema: 'claro' };
+  let agendado = false;
+  function recompute() {
+    for (const [id, def] of calcs) {
+      const ins = def.inputs.map((i) => RAW[i] || CALC[i] || { status: 'missing' });
+      const bad = ins.find((x) => x.status !== 'ok');
+      if (bad) { CALC[id] = { status: bad.status === 'error' ? 'error' : 'loading', data: [] }; continue; }
+      try { CALC[id] = { status: 'ok', data: def.fn(...ins.map((x) => x.data)) }; }
+      catch (e) { CALC[id] = { status: 'error', data: [], message: String(e) }; }
+    }
+  }
+  function visivel() { const a = document.getElementById('aba-painel'); return !a || !a.hidden; }
+  function run() { if (!visivel()) return; cbs.forEach((fn) => { try { fn(); } catch (e) { console.error(e); } }); }
+  function agenda() { if (agendado) return; agendado = true; requestAnimationFrame(() => { agendado = false; run(); }); }
+  window.dash = {
+    colors: ['#2f6fd6', '#F47920'],
+    data: (id) => RAW[id] || CALC[id] || { status: 'missing', data: [] },
+    calc: (id, def) => { calcs.push([id, def]); },
+    onData: (fn) => { cbs.push(fn); },
+    params: () => P,
+    setParams: (o) => { o = Object.assign({}, o); if ('area' in o && !o.area && window.__areaFixa) o.area = window.__areaFixa; P = Object.assign({}, P, o); run(); },
+    resetParams: () => {},
+    setLink: () => {},
+  };
+  window.__setDados = (id, rows, status) => { RAW[id] = { status: status || 'ok', data: rows || [] }; recompute(); run(); };
+  window.__redesenha = run;
+  let largura = window.innerWidth;
+  window.addEventListener('resize', () => { if (Math.abs(window.innerWidth - largura) > 8) { largura = window.innerWidth; agenda(); } });
+})();
+
+(function () {
+  const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const ML = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+  const brlK = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact', maximumFractionDigits: 1 });
+  const fMoney = (v) => (v == null ? '—' : brl.format(v));
+  const fBig = (v) => (v == null ? '—' : Math.abs(v) >= 10000 ? brlK.format(v) : brl.format(v));
+  const fPct = (v) => (v == null ? '—' : (v * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%');
+  const fInt = (v) => (v == null ? '—' : String(v));
+  const enc = (v) => encodeURIComponent(String(v));
+  const isBad = (s) => s === 'Estourado';
+  const isSem = (s) => s === 'Sem orçamento';
+  const stColor = (s) => (isBad(s) ? 'var(--cm-bad)' : isSem(s) ? 'var(--cm-sem)' : s === 'Atenção' ? 'var(--cm-warn)' : 'var(--cm-ok)');
+  const stLabel = (s) => (s === 'Estourado' ? 'Acima' : s === 'Atenção' ? 'Atenção' : s === 'OK' ? 'Dentro' : s === 'Sem orçamento' ? 'Sem orçamento' : '—');
+  const pillClass = (s) => (isBad(s) ? 'cm-pill-bad' : isSem(s) ? 'cm-pill-sem' : s === 'Atenção' ? 'cm-pill-warn' : s === 'OK' ? 'cm-pill-ok' : 'cm-pill-none');
+
+  dash.calc('por_area', {
+    inputs: ['mensal'],
+    title: 'Orçado x realizado por área',
+    description: 'Para cada área e mês de referência: valores do mês, acumulado de janeiro até o mês, execução do orçamento anual (realizado acumulado ÷ orçado do ano), parcela do ano esperada até o mês (orçado acumulado ÷ orçado do ano) e saldo do ano (orçado do ano − realizado lançado). Atenção a partir de 90% de uso, estourado acima de 100%.',
+    fn: (mensal) => {
+      const ATENCAO = 0.9, ESTOURO = 1.0;
+      const NOMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      const r2 = (v) => (v == null ? null : Math.round(v * 100) / 100);
+      const r4 = (v) => (v == null ? null : Math.round(v * 10000) / 10000);
+      const status = (orc, real) => {
+        if (real == null) return null;
+        if (orc <= 0) return real > 0 ? 'Sem orçamento' : '-';
+        const u = real / orc;
+        return u > ESTOURO ? 'Estourado' : u >= ATENCAO ? 'Atenção' : 'OK';
+      };
+      const rows = mensal.map((r) => ({ area: r.area, mes: Number(r.mes), orcado: Number(r.orcado) || 0, realizado: r.realizado == null || r.realizado === '' ? null : Number(r.realizado) }));
+      const areas = [...new Set(rows.map((r) => r.area))];
+      const out = [];
+      for (const area of areas) {
+        const rs = rows.filter((r) => r.area === area);
+        const orcAno = rs.reduce((s, r) => s + r.orcado, 0);
+        const realAno = rs.reduce((s, r) => s + (r.realizado || 0), 0);
+        for (let m = 1; m <= 12; m++) {
+          const cur = rs.find((r) => r.mes === m) || { orcado: 0, realizado: null };
+          const ytd = rs.filter((r) => r.mes <= m);
+          const orcY = ytd.reduce((s, r) => s + r.orcado, 0);
+          const temReal = ytd.some((r) => r.realizado != null);
+          const realY = temReal ? ytd.reduce((s, r) => s + (r.realizado || 0), 0) : null;
+          out.push({
+            area, mes_ref: m, mes_nome: NOMES[m - 1],
+            orcado_mes: r2(cur.orcado), realizado_mes: r2(cur.realizado),
+            uso_mes: cur.realizado == null || cur.orcado <= 0 ? null : r4(cur.realizado / cur.orcado),
+            status_mes: status(cur.orcado, cur.realizado),
+            orcado_ytd: r2(orcY), realizado_ytd: r2(realY),
+            uso_ytd: realY == null || orcY <= 0 ? null : r4(realY / orcY),
+            status_ytd: status(orcY, realY),
+            orcado_ano: r2(orcAno),
+            execucao_ytd: realY == null || orcAno <= 0 ? null : r4(realY / orcAno),
+            esperado_ytd: orcAno <= 0 ? null : r4(orcY / orcAno),
+            saldo_ano: r2(orcAno - realAno),
+          });
+        }
+      }
+      return out;
+    },
+  });
+
+  dash.calc('totais', {
+    inputs: ['por_area'],
+    title: 'Totais da empresa por mês',
+    description: 'Soma de todas as áreas para cada mês de referência, com a contagem de áreas acima do orçamento, em atenção e sem orçamento, no mês e no acumulado do ano.',
+    fn: (por_area) => {
+      const r2 = (v) => Math.round(v * 100) / 100;
+      const r4 = (v) => Math.round(v * 10000) / 10000;
+      const out = [];
+      for (let m = 1; m <= 12; m++) {
+        const rs = por_area.filter((r) => r.mes_ref === m);
+        const sum = (k) => rs.reduce((s, r) => s + (r[k] || 0), 0);
+        const cnt = (k, ss) => rs.filter((r) => ss.includes(r[k])).length;
+        const temMes = rs.some((r) => r.realizado_mes != null);
+        const temYtd = rs.some((r) => r.realizado_ytd != null);
+        const orcM = sum('orcado_mes'), realM = sum('realizado_mes'), orcY = sum('orcado_ytd'), realY = sum('realizado_ytd'), orcA = sum('orcado_ano');
+        out.push({
+          mes_ref: m,
+          orcado_mes: r2(orcM), realizado_mes: temMes ? r2(realM) : null,
+          uso_mes: temMes && orcM > 0 ? r4(realM / orcM) : null,
+          orcado_ytd: r2(orcY), realizado_ytd: temYtd ? r2(realY) : null,
+          uso_ytd: temYtd && orcY > 0 ? r4(realY / orcY) : null,
+          orcado_ano: r2(orcA), saldo_ano: r2(sum('saldo_ano')),
+          execucao_ytd: temYtd && orcA > 0 ? r4(realY / orcA) : null,
+          esperado_ytd: orcA > 0 ? r4(orcY / orcA) : null,
+          estouradas: temMes ? cnt('status_mes', ['Estourado']) : null,
+          atencao: temMes ? cnt('status_mes', ['Atenção']) : null,
+          sem_orc: temMes ? cnt('status_mes', ['Sem orçamento']) : null,
+          com_orc: rs.filter((r) => r.orcado_mes > 0).length,
+          estouradas_ytd: temYtd ? cnt('status_ytd', ['Estourado']) : null,
+          atencao_ytd: temYtd ? cnt('status_ytd', ['Atenção']) : null,
+          sem_orc_ytd: temYtd ? cnt('status_ytd', ['Sem orçamento']) : null,
+          com_orc_ytd: rs.filter((r) => r.orcado_ytd > 0).length,
+          areas: rs.length,
+        });
+      }
+      return out;
+    },
+  });
+
+  dash.calc('area_meses', {
+    inputs: ['por_area'],
+    title: 'Meses fora do orçamento por área',
+    description: 'Para cada área e mês de referência: quantos meses fechados de janeiro até o mês ficaram acima do orçamento (acima de 100%) e em atenção (90% a 100%).',
+    fn: (por_area) => {
+      const out = [];
+      const areas = [...new Set(por_area.map((r) => r.area))];
+      for (const area of areas) {
+        const rs = por_area.filter((r) => r.area === area);
+        for (let m = 1; m <= 12; m++) {
+          const ate = rs.filter((r) => r.mes_ref <= m && r.realizado_mes != null);
+          out.push({
+            area, mes_ref: m,
+            meses_fechados: ate.length,
+            meses_acima: ate.filter((r) => r.status_mes === 'Estourado').length,
+            meses_sem_orc: ate.filter((r) => r.status_mes === 'Sem orçamento').length,
+            meses_atencao: ate.filter((r) => r.status_mes === 'Atenção').length,
+          });
+        }
+      }
+      return out;
+    },
+  });
+
+  dash.calc('sem_orc_acum', {
+    inputs: ['sem_orcamento'],
+    title: 'Gasto em contas sem orçamento',
+    description: 'Realizado em contas que não têm orçamento aprovado na aba Orçamento: no mês e acumulado de janeiro até o mês.',
+    fn: (sem_orcamento) => {
+      const out = [];
+      let acc = 0, tem = false;
+      for (let m = 1; m <= 12; m++) {
+        const r = sem_orcamento.find((x) => Number(x.mes) === m);
+        const v = r && r.valor != null && r.valor !== '' ? Number(r.valor) : null;
+        if (v != null) { acc += v; tem = true; }
+        out.push({ mes_ref: m, valor_mes: v == null ? null : Math.round(v * 100) / 100, valor_ytd: tem ? Math.round(acc * 100) / 100 : null });
+      }
+      return out;
+    },
+  });
+
+  dash.calc('por_conta', {
+    inputs: ['contas'],
+    title: 'Orçado x realizado por conta',
+    description: 'Para cada área, conta e mês de referência: valores do mês e acumulado de janeiro até o mês. Mesmo critério de status das áreas.',
+    fn: (contas) => {
+      const ATENCAO = 0.9, ESTOURO = 1.0;
+      const r2 = (v) => (v == null ? null : Math.round(v * 100) / 100);
+      const r4 = (v) => (v == null ? null : Math.round(v * 10000) / 10000);
+      const status = (orc, real) => {
+        if (real == null) return null;
+        if (orc <= 0) return real > 0 ? 'Sem orçamento' : '-';
+        const u = real / orc;
+        return u > ESTOURO ? 'Estourado' : u >= ATENCAO ? 'Atenção' : 'OK';
+      };
+      const rows = contas.map((r) => ({ area: r.area, conta: r.conta, mes: Number(r.mes), orcado: Number(r.orcado) || 0, realizado: r.realizado == null || r.realizado === '' ? null : Number(r.realizado) }));
+      const grupos = new Map();
+      rows.forEach((r) => { const k = r.area + '|' + r.conta; if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(r); });
+      const out = [];
+      for (const [id, rs] of grupos) {
+        for (let m = 1; m <= 12; m++) {
+          const cur = rs.find((r) => r.mes === m) || { orcado: 0, realizado: null };
+          const ytd = rs.filter((r) => r.mes <= m);
+          const orcY = ytd.reduce((s, r) => s + r.orcado, 0);
+          const temReal = ytd.some((r) => r.realizado != null);
+          const realY = temReal ? ytd.reduce((s, r) => s + (r.realizado || 0), 0) : null;
+          out.push({
+            id, area: rs[0].area, conta: rs[0].conta, mes_ref: m,
+            orcado_mes: r2(cur.orcado), realizado_mes: r2(cur.realizado),
+            uso_mes: cur.realizado == null || cur.orcado <= 0 ? null : r4(cur.realizado / cur.orcado),
+            status_mes: status(cur.orcado, cur.realizado),
+            orcado_ytd: r2(orcY), realizado_ytd: r2(realY),
+            uso_ytd: realY == null || orcY <= 0 ? null : r4(realY / orcY),
+            status_ytd: status(orcY, realY),
+          });
+        }
+      }
+      return out;
+    },
+  });
+
+  dash.calc('por_mes', {
+    inputs: ['mensal'],
+    title: 'Orçado e realizado mês a mês',
+    description: 'Soma de todas as áreas em cada mês do ano; realizado vazio nos meses ainda sem fechamento.',
+    fn: (mensal) => {
+      const NOMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      const out = [];
+      for (let m = 1; m <= 12; m++) {
+        const rs = mensal.filter((r) => Number(r.mes) === m);
+        const tem = rs.some((r) => r.realizado != null && r.realizado !== '');
+        out.push({
+          mes: m, mes_nome: NOMES[m - 1],
+          orcado: Math.round(rs.reduce((s, r) => s + (Number(r.orcado) || 0), 0) * 100) / 100,
+          realizado: tem ? Math.round(rs.reduce((s, r) => s + (Number(r.realizado) || 0), 0) * 100) / 100 : null,
+        });
+      }
+      return out;
+    },
+  });
+
+  // ---------- filtros (mes = 0 é o ano inteiro)
+  const selMes = document.getElementById('cm-mes');
+  const selArea = document.getElementById('cm-area');
+  selMes.addEventListener('change', () => dash.setParams({ mes: Number(selMes.value) }));
+  selArea.addEventListener('change', () => dash.setParams({ area: selArea.value || null }));
+  const voltar = (ev) => { dash.setParams({ area: null }); const alvo = ev && ev.currentTarget && ev.currentTarget.closest('section'); if (alvo && alvo.scrollIntoView) requestAnimationFrame(() => alvo.scrollIntoView({ block: 'start' })); };
+  document.getElementById('cm-limpa').addEventListener('click', voltar);
+  document.getElementById('cm-voltar-contas').addEventListener('click', voltar);
+  document.getElementById('b-justificar').addEventListener('click', () => {
+    const p = dash.params();
+    window.__abrirJustificativa && window.__abrirJustificativa(p.area || '', Number(p.mes) || 0);
+  });
+  document.getElementById('cm-tema').addEventListener('click', () => dash.setParams({ tema: dash.params().tema === 'escuro' ? 'claro' : 'escuro' }));
+  const toggleArea = (a) => dash.setParams({ area: dash.params().area === a ? null : a });
+
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const mark = (e, src, field, where) => { e.setAttribute('data-source', src); if (field) e.setAttribute('data-field', field); if (where) e.setAttribute('data-where', where); return e; };
+  const tx = (s) => document.createTextNode(s);
+  const fail = (box) => { box.replaceChildren(); box.appendChild(el('div', 'cm-fail', 'Failed to load')); };
+
+  function tipShow(tip, card, event, nodes) {
+    tip.replaceChildren(...nodes);
+    tip.style.display = 'block';
+    const b = card.getBoundingClientRect();
+    let x = event.clientX - b.left + 14, y = event.clientY - b.top + 14;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    if (x + w > b.width - 4) x = event.clientX - b.left - w - 14;
+    if (y + h > b.height - 4) y = event.clientY - b.top - h - 14;
+    tip.style.left = Math.max(4, x) + 'px';
+    tip.style.top = Math.max(4, y) + 'px';
+  }
+  const tipLine = (color, label, value) => {
+    const d = el('div');
+    if (color) { const s = el('span', 'cm-sw'); s.style.background = color; d.appendChild(s); }
+    d.append(tx(label + ': '), el('b', null, value));
+    return d;
+  };
+  const tipHead = (t) => el('div', 'cm-tip-h', t);
+  const hideTip = (tip) => () => { tip.style.display = 'none'; };
+
+  // ---------- indicadores
+  // V = visão: {ano: bool, ref: mês da linha usada, sel, src, where, row, tot, am, L}
+  function kpi(id, label, valNode, subNodes, bar, scaleNodes) {
+    const box = document.getElementById(id);
+    box.replaceChildren();
+    box.appendChild(el('div', 'cm-kpi-lab', label));
+    const v = el('div', 'cm-kpi-val'); v.append(...valNode); box.appendChild(v);
+    for (const s of subNodes) { const d = el('div', 'cm-kpi-sub'); d.append(...s); box.appendChild(d); }
+    if (bar) {
+      const b = mark(el('div', 'cm-bar' + (bar.status === 'bad' ? ' cm-is-bad' : bar.status === 'warn' ? ' cm-is-warn' : '')), bar.src);
+      const i = el('i'); i.style.width = bar.v == null ? '0' : Math.min(100, bar.v * 100) + '%'; b.appendChild(i);
+      if (bar.marker != null) { const k = el('span'); k.style.cssText = 'position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--color-fg);left:calc(' + Math.min(100, bar.marker * 100) + '% - 1px)'; b.appendChild(k); b.style.overflow = 'visible'; }
+      box.appendChild(b);
+    }
+    if (scaleNodes) { const s = el('div', 'cm-bar-scale'); const a = el('span'); a.append(...scaleNodes[0]); s.append(a, el('span', null, scaleNodes[1])); box.appendChild(s); }
+  }
+  const stOf = (u) => (u == null ? null : u > 1 ? 'bad' : u >= 0.9 ? 'warn' : 'ok');
+
+  function drawKPIs(V) {
+    const r = V.row, w = V.where, s = V.src;
+    const b = (field, fmt, cls) => mark(el('b', cls, fmt(r ? r[field] : null)), s, field, w);
+    const big = (field, fmt, neg) => { const e = mark(el('span', null, fmt(r ? r[field] : null)), s, field, w); if (neg && r && r[field] < 0) e.className = 'cm-neg'; return [e]; };
+    if (!V.ano) {
+      kpi('kpi-1', 'Realizado no mês', big('realizado_mes', fBig), [[tx('Orçado '), b('orcado_mes', fBig)]], { v: r && r.uso_mes, src: s, status: stOf(r && r.uso_mes) }, [[b('uso_mes', fPct), tx(' do orçamento')], '100%']);
+      kpi('kpi-2', 'Acumulado no ano', big('realizado_ytd', fBig), [[tx('Orçado '), b('orcado_ytd', fBig)]], { v: r && r.uso_ytd, src: s, status: stOf(r && r.uso_ytd) }, [[b('uso_ytd', fPct), tx(' do orçamento')], '100%']);
+    } else {
+      const ate = 'até ' + ML[V.ref - 1];
+      kpi('kpi-1', 'Realizado ' + ate, big('realizado_ytd', fBig), [[tx('Orçado no período '), b('orcado_ytd', fBig)]], { v: r && r.uso_ytd, src: s, status: stOf(r && r.uso_ytd) }, [[b('uso_ytd', fPct), tx(' do orçado no período')], '100%']);
+      kpi('kpi-2', 'Execução do orçamento anual', big('execucao_ytd', fPct), [[tx('de '), b('orcado_ano', fBig), tx(' orçados para o ano')]],
+        { v: r && r.execucao_ytd, src: s, status: stOf(r && r.uso_ytd), marker: r && r.esperado_ytd }, [[tx('Traço = esperado ' + ate + ': '), b('esperado_ytd', fPct)], '100%']);
+    }
+    kpi('kpi-3', 'Saldo do ano', big('saldo_ano', fBig, true), [[tx('de '), b('orcado_ano', fBig), tx(' orçados para o ano')], [tx('Orçado do ano − tudo o que já foi realizado.')]], null, null);
+
+    // quarto indicador
+    const box = document.getElementById('kpi-4');
+    box.replaceChildren();
+    const split = (src, parts) => {
+      const sp = mark(el('div', 'cm-split'), src);
+      parts.forEach(([n, c]) => { if (n > 0) { const i = el('i'); i.style.flex = String(n); i.style.background = c; sp.appendChild(i); } });
+      return sp;
+    };
+    const dots = (src, field, where, val) => {
+      const d = el('div', 'cm-dots');
+      const s1 = el('span', null, 'Acima'); s1.style.setProperty('--sw', 'var(--cm-bad)');
+      const s2 = el('span'); s2.style.setProperty('--sw', 'var(--cm-warn)'); s2.append(mark(el('b', null, fInt(val)), src, field, where), tx(' em atenção'));
+      const s3 = el('span', null, 'Dentro'); s3.style.setProperty('--sw', 'var(--cm-ok)');
+      d.append(s1, s2, s3);
+      return d;
+    };
+    if (!V.sel) {
+      const t = V.tot, wt = 'mes_ref=' + V.ref;
+      const fe = V.ano ? 'estouradas_ytd' : 'estouradas', fa = V.ano ? 'atencao_ytd' : 'atencao', fs = V.ano ? 'sem_orc_ytd' : 'sem_orc', fc = V.ano ? 'com_orc_ytd' : 'com_orc';
+      box.appendChild(el('div', 'cm-kpi-lab', V.ano ? 'Áreas acima do orçado no acumulado' : 'Áreas acima do orçamento'));
+      const v = el('div', 'cm-kpi-val');
+      const sub = el('span', 'cm-kpi-sub'); sub.append(tx(' de '), mark(el('span', null, fInt(t ? t[fc] : null)), 'totais', fc, wt), tx(' com orçamento'));
+      v.append(mark(el('span', null, fInt(t ? t[fe] : null)), 'totais', fe, wt), sub);
+      box.appendChild(v);
+      box.appendChild(split('totais', t && t[fe] != null ? [[t[fe], 'var(--cm-bad)'], [t[fa], 'var(--cm-warn)'], [Math.max(0, t[fc] - t[fe] - t[fa]), 'var(--cm-ok)'], [t[fs], 'var(--cm-sem)']] : []));
+      box.appendChild(dots('totais', fa, wt, t ? t[fa] : null));
+      const ds = el('div', 'cm-dots'); const s4 = el('span'); s4.style.setProperty('--sw', 'var(--cm-sem)');
+      s4.append(mark(el('b', null, fInt(t ? t[fs] : null)), 'totais', fs, wt), tx(' áreas com gasto sem orçamento')); ds.appendChild(s4); box.appendChild(ds);
+    } else {
+      const a = V.am, wa = 'area=' + enc(V.sel) + '&mes_ref=' + V.ref;
+      box.appendChild(el('div', 'cm-kpi-lab', 'Meses acima do orçamento'));
+      const v = el('div', 'cm-kpi-val');
+      const sub = el('span', 'cm-kpi-sub'); sub.append(tx(' de '), mark(el('span', null, fInt(a ? a.meses_fechados : null)), 'area_meses', 'meses_fechados', wa), tx(' meses fechados'));
+      v.append(mark(el('span', null, fInt(a ? a.meses_acima : null)), 'area_meses', 'meses_acima', wa), sub);
+      box.appendChild(v);
+      box.appendChild(split('area_meses', a && a.meses_fechados ? [[a.meses_acima, 'var(--cm-bad)'], [a.meses_atencao, 'var(--cm-warn)'], [Math.max(0, a.meses_fechados - a.meses_acima - a.meses_atencao - a.meses_sem_orc), 'var(--cm-ok)'], [a.meses_sem_orc, 'var(--cm-sem)']] : []));
+      box.appendChild(dots('area_meses', 'meses_atencao', wa, a ? a.meses_atencao : null));
+      if (a && a.meses_sem_orc > 0) {
+        const ds = el('div', 'cm-dots'); const s4 = el('span'); s4.style.setProperty('--sw', 'var(--cm-sem)');
+        s4.append(mark(el('b', null, fInt(a.meses_sem_orc)), 'area_meses', 'meses_sem_orc', wa), tx(' meses com gasto sem orçamento')); ds.appendChild(s4); box.appendChild(ds);
+      }
+    }
+  }
+
+  // ---------- comparativo entre áreas (bullet)
+  // cada linha: {area, track, alvo, real, uso, status}
+  function drawAreas(rows, sel, tituloTip) {
+    const box = document.getElementById('graf-areas');
+    const tip = document.getElementById('tip-areas');
+    const card = document.getElementById('card-areas');
+    box.replaceChildren();
+    const W = Math.max(280, box.clientWidth || 600);
+    const rowH = 40, top = 4;
+    const H = rows.length * rowH + top + 4;
+    box.style.minHeight = H + 'px';
+    const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Comparativo entre áreas');
+    const meas = svg.append('g');
+    let labW = 0, pctW = 0;
+    rows.forEach((r) => { const t = meas.append('text').attr('font-size', 13).attr('font-weight', 600).text(r.area); labW = Math.max(labW, t.node().getComputedTextLength()); });
+    rows.forEach((r) => { const t = meas.append('text').attr('font-size', 12).attr('font-weight', 600).text(isSem(r.status) ? 'sem orç.' : fPct(r.uso)); pctW = Math.max(pctW, t.node().getComputedTextLength()); });
+    meas.remove();
+    labW = Math.min(labW + 16, W * 0.4);
+    pctW += 12;
+    const max = d3.max(rows, (r) => Math.max(r.track || 0, r.alvo || 0, r.real || 0)) || 1;
+    const x = d3.scaleLinear([0, max], [labW, W - pctW]);
+    const g = svg.selectAll('g.r').data(rows).join('g').attr('transform', (r, i) => `translate(0,${top + i * rowH})`)
+      .style('opacity', (r) => (sel && r.area !== sel ? 0.32 : 1)).style('cursor', 'pointer');
+    g.filter((r) => r.area === sel).append('rect').attr('x', 0).attr('y', 2).attr('width', W).attr('height', rowH - 4).attr('rx', 6)
+      .style('fill', 'color-mix(in srgb, var(--color-fg) 6%, transparent)');
+    g.filter((r, i) => i > 0).append('line').attr('x1', 0).attr('x2', W).attr('y1', 0).attr('y2', 0).attr('stroke-width', 1).style('stroke', 'var(--cds-chart-grid)');
+    g.append('text').attr('x', labW - 12).attr('y', rowH / 2).attr('dy', '0.35em').attr('text-anchor', 'end')
+      .attr('font-size', 13).attr('font-weight', 600).style('fill', 'var(--color-fg)').text((r) => r.area)
+      .each(function () { const t = this; let s = t.textContent; while (t.getComputedTextLength() > labW - 16 && s.length > 4) { s = s.slice(0, -1); t.textContent = s + '…'; } });
+    g.append('rect').attr('x', x(0)).attr('y', rowH / 2 - 11).attr('height', 22).attr('rx', 4)
+      .attr('width', (r) => Math.max(0, x(r.track || 0) - x(0))).style('fill', 'var(--cm-orc)');
+    g.append('rect').attr('x', x(0)).attr('y', rowH / 2 - 6).attr('height', 12).attr('rx', 4)
+      .attr('width', (r) => Math.max(0, x(r.real || 0) - x(0))).style('fill', (r) => stColor(r.status));
+    g.append('line').attr('x1', (r) => x(r.alvo || 0)).attr('x2', (r) => x(r.alvo || 0))
+      .attr('y1', rowH / 2 - 13).attr('y2', rowH / 2 + 13).attr('stroke-width', 2).style('stroke', 'var(--color-fg)');
+    g.append('text').attr('x', W).attr('y', rowH / 2).attr('dy', '0.35em').attr('text-anchor', 'end')
+      .attr('font-size', 12).attr('font-weight', 600).style('font-variant-numeric', 'tabular-nums')
+      .style('fill', (r) => (isBad(r.status) ? 'var(--color-bad)' : r.status === 'Atenção' ? 'var(--color-warn)' : 'var(--color-fg-muted)'))
+      .text((r) => (isSem(r.status) ? 'sem orç.' : fPct(r.uso)));
+    g.append('rect').attr('x', 0).attr('y', 0).attr('width', W).attr('height', rowH).style('fill', 'transparent')
+      .on('click', (event, r) => { tip.style.display = 'none'; toggleArea(r.area); })
+      .on('mousemove', (event, r) => tipShow(tip, card, event, tituloTip(r)))
+      .on('mouseleave', hideTip(tip));
+  }
+
+  // ---------- pontos de atenção
+  function highItem(color, name, value, detail, onClick) {
+    const it = el('div', 'cm-high-item cm-in');
+    it.style.setProperty('--sw', color);
+    it.append(el('div', 'n', name), el('div', 'v', value), el('div', 'd', detail));
+    if (onClick) { it.style.cursor = 'pointer'; it.addEventListener('click', onClick); }
+    return it;
+  }
+  const detalhe = (orc, real) => {
+    const exc = real - orc;
+    return (exc > 0 ? fMoney(exc) + ' acima do orçado' : fMoney(-exc) + ' de folga') + ' · realizado ' + fMoney(real) + ' de ' + fMoney(orc);
+  };
+
+  // ---------- gráfico mês a mês
+  const corMes = (r) => {
+    if (r.realizado == null) return 'transparent';
+    if (!(r.orcado > 0)) return r.realizado > 0 ? 'var(--cm-sem)' : 'var(--cm-ok)';
+    const u = r.realizado / r.orcado;
+    return u > 1 ? 'var(--cm-bad)' : u >= 0.9 ? 'var(--cm-warn)' : 'var(--cm-ok)';
+  };
+  function drawMeses(rows, mes, rotuloSerie) {
+    const box = document.getElementById('graf-meses');
+    const tip = document.getElementById('tip-meses');
+    const card = document.getElementById('card-meses');
+    box.replaceChildren();
+    const W = Math.max(280, box.clientWidth || 600), H = 300;
+    box.style.minHeight = H + 'px';
+    const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Orçado e realizado por mês · ' + rotuloSerie);
+    const max = d3.max(rows, (r) => Math.max(r.orcado || 0, r.realizado || 0)) || 1;
+    const y = d3.scaleLinear([0, max * 1.08], [H - 28, 12]).nice();
+    const ticks = y.ticks(4);
+    const meas = svg.append('g');
+    let tw = 0;
+    ticks.forEach((t) => { const n = meas.append('text').attr('font-size', 11).text(brlK.format(t)); tw = Math.max(tw, n.node().getComputedTextLength()); });
+    meas.remove();
+    const left = tw + 10, right = W - 4;
+    const x = d3.scaleBand(rows.map((r) => r.mes), [left, right]).paddingInner(0.28).paddingOuter(0.12);
+    const xi = d3.scaleBand(['o', 'r'], [0, x.bandwidth()]).paddingInner(0.1);
+    svg.append('g').selectAll('line').data(ticks).join('line').attr('x1', left).attr('x2', right).attr('y1', (t) => y(t)).attr('y2', (t) => y(t)).attr('stroke-width', 1).style('stroke', 'var(--cds-chart-grid)');
+    svg.append('g').selectAll('text').data(ticks).join('text').attr('x', left - 6).attr('y', (t) => y(t)).attr('dy', '0.35em').attr('text-anchor', 'end').attr('font-size', 11).style('fill', 'var(--color-fg-muted)').text((t) => brlK.format(t));
+    const g = svg.selectAll('g.m').data(rows).join('g').attr('transform', (r) => `translate(${x(r.mes)},0)`).style('cursor', 'pointer');
+    g.append('rect').attr('x', -x.step() * 0.14).attr('y', 4).attr('width', x.bandwidth() + x.step() * 0.28).attr('height', H - 28).attr('rx', 6)
+      .style('fill', (r) => (r.mes === mes ? 'color-mix(in srgb, var(--color-fg) 7%, transparent)' : 'transparent'));
+    const bw = Math.min(xi.bandwidth(), 28);
+    g.append('rect').attr('x', xi('o') + (xi.bandwidth() - bw)).attr('width', bw).attr('y', (r) => y(r.orcado || 0)).attr('height', (r) => Math.max(0, y(0) - y(r.orcado || 0))).attr('rx', 4).style('fill', 'var(--cm-orc)');
+    g.append('rect').attr('x', xi('r')).attr('width', bw).attr('y', (r) => y(r.realizado || 0)).attr('height', (r) => Math.max(0, y(0) - y(r.realizado || 0))).attr('rx', 4).style('fill', (r) => corMes(r));
+    const step = x.bandwidth() < 24 ? 2 : 1;
+    g.append('text').attr('x', x.bandwidth() / 2).attr('y', H - 8).attr('text-anchor', 'middle').attr('font-size', 11)
+      .style('fill', (r) => (r.mes === mes ? 'var(--color-fg)' : 'var(--color-fg-muted)')).style('font-weight', (r) => (r.mes === mes ? 700 : 400))
+      .text((r, i) => (i % step === 0 || r.mes === mes ? r.mes_nome : ''));
+    g.append('rect').attr('x', -x.step() * 0.14).attr('y', 0).attr('width', x.step()).attr('height', H).style('fill', 'transparent')
+      .on('click', (event, r) => { tip.style.display = 'none'; dash.setParams({ mes: r.mes }); })
+      .on('mousemove', (event, r) => tipShow(tip, card, event, [tipHead(cap(ML[r.mes - 1]) + ' · ' + rotuloSerie), tipLine('var(--cm-orc)', 'Orçado', fMoney(r.orcado)), tipLine(corMes(r), 'Realizado', fMoney(r.realizado)),
+        tipLine(null, 'Diferença', fMoney(r.realizado == null ? null : r.orcado - r.realizado)), tipLine(null, 'Uso', fPct(r.realizado == null || !r.orcado ? null : r.realizado / r.orcado))]))
+      .on('mouseleave', hideTip(tip));
+  }
+
+  // ---------- tabelas
+  const td = (text, cls) => el('td', cls, text);
+  const pill = (s) => { const c = el('td', 'cm-c'); c.appendChild(el('span', 'cm-pill ' + pillClass(s), stLabel(s))); return c; };
+  const useCell = (v, s, cls) => {
+    const c = el('td', cls);
+    if (isSem(s)) { c.appendChild(el('span', null, 'sem orçamento')); c.style.color = 'var(--color-fg-muted)'; return c; }
+    const w = el('span', 'cm-use');
+    const bar = el('span', 'cm-bar' + (isBad(s) ? ' cm-is-bad' : s === 'Atenção' ? ' cm-is-warn' : ''));
+    const i = el('i'); i.style.width = v == null ? '0' : Math.min(100, v * 100) + '%';
+    bar.appendChild(i);
+    w.append(bar, tx(fPct(v)));
+    c.appendChild(w);
+    return c;
+  };
+  function setHead(cols) {
+    const tr = document.getElementById('th-row');
+    tr.replaceChildren(...cols.map(([field, label, cls]) => { const th = el('th', cls || null, label); th.setAttribute('data-field', field); return th; }));
+  }
+  const COLS_MES = (primeira) => [[primeira[0], primeira[1], 'cm-l'], ['orcado_mes', 'Orçado mês'], ['realizado_mes', 'Realizado mês'], ['uso_mes', 'Uso'], ['status_mes', 'Status', 'cm-c'],
+    ['orcado_ytd', 'Orçado acum.', 'cm-hide-narrow cm-grp'], ['realizado_ytd', 'Realizado acum.', 'cm-hide-narrow'], ['uso_ytd', 'Uso acum.', 'cm-hide-narrow'], ['saldo_ano', 'Saldo do ano', 'cm-grp']];
+  function rowMes(r, first) {
+    return [td(first, 'cm-l cm-area'), td(fMoney(r.orcado_mes)), td(fMoney(r.realizado_mes)), useCell(r.uso_mes, r.status_mes), pill(r.status_mes),
+      td(fMoney(r.orcado_ytd), 'cm-hide-narrow cm-grp'), td(fMoney(r.realizado_ytd), 'cm-hide-narrow'), useCell(r.uso_ytd, r.status_ytd, 'cm-hide-narrow'),
+      td(fMoney(r.saldo_ano), 'cm-grp' + (r.saldo_ano < 0 ? ' cm-neg' : ''))];
+  }
+  function drawTabela(V, rowsRef, rowsArea) {
+    const tb = document.querySelector('#tb-areas tbody');
+    tb.replaceChildren();
+    const add = (r, cells, onClick, on) => {
+      const tr = document.createElement('tr');
+      tr.dataset.key = enc(r.area) + ',' + enc(r.mes_ref);
+      tr.dataset.click = '1';
+      if (on) tr.className = 'cm-on';
+      tr.addEventListener('click', onClick);
+      tr.append(...cells);
+      tb.appendChild(tr);
+    };
+    if (V.sel) {
+      setHead(COLS_MES(['mes_nome', 'Mês']));
+      rowsArea.forEach((r) => add(r, rowMes(r, r.mes_nome), () => dash.setParams({ mes: r.mes_ref }), !V.ano && r.mes_ref === V.mes));
+    } else if (!V.ano) {
+      setHead(COLS_MES(['area', 'Área']));
+      rowsRef.forEach((r) => add(r, rowMes(r, r.area), () => toggleArea(r.area)));
+    } else {
+      const ate = 'até ' + MESES[V.ref - 1];
+      setHead([['area', 'Área', 'cm-l'], ['orcado_ytd', 'Orçado ' + ate], ['realizado_ytd', 'Realizado ' + ate], ['uso_ytd', 'Uso'], ['status_ytd', 'Status', 'cm-c'],
+        ['orcado_ano', 'Orçado do ano', 'cm-hide-narrow cm-grp'], ['execucao_ytd', 'Execução do ano', 'cm-hide-narrow'], ['saldo_ano', 'Saldo do ano', 'cm-grp']]);
+      rowsRef.forEach((r) => add(r, [td(r.area, 'cm-l cm-area'), td(fMoney(r.orcado_ytd)), td(fMoney(r.realizado_ytd)), useCell(r.uso_ytd, r.status_ytd), pill(r.status_ytd),
+        td(fMoney(r.orcado_ano), 'cm-hide-narrow cm-grp'), useCell(r.execucao_ytd, r.status_ytd, 'cm-hide-narrow'), td(fMoney(r.saldo_ano), 'cm-grp' + (r.saldo_ano < 0 ? ' cm-neg' : ''))],
+        () => toggleArea(r.area)));
+    }
+  }
+
+  function drawContas(V, rows) {
+    const tb = document.querySelector('#tb-contas tbody');
+    tb.replaceChildren();
+    const k = V.ano ? '_ytd' : '_mes';
+    const cols = [['conta', 'Conta', 'cm-l']];
+    if (!V.sel) cols.push(['area', 'Área', 'cm-l cm-hide-narrow']);
+    cols.push(['orcado' + k, V.ano ? 'Orçado até ' + MESES[V.ref - 1] : 'Orçado'], ['realizado' + k, V.ano ? 'Realizado até ' + MESES[V.ref - 1] : 'Realizado'], ['uso' + k, 'Uso'], ['status' + k, 'Status', 'cm-c']);
+    const tr0 = document.getElementById('th-contas');
+    tr0.replaceChildren(...cols.map(([f, l, c]) => { const th = el('th', c || null, l); th.setAttribute('data-field', f); return th; }));
+    let lst = rows.filter((r) => r.mes_ref === V.ref && (r['orcado' + k] || r['realizado' + k]) && (!V.sel || r.area === V.sel));
+    if (V.sel) lst.sort((a, b) => (b['realizado' + k] || 0) - (a['realizado' + k] || 0));
+    else lst = lst.filter((r) => r['realizado' + k] != null && r['realizado' + k] > r['orcado' + k])
+      .sort((a, b) => ((b['realizado' + k] - b['orcado' + k]) - (a['realizado' + k] - a['orcado' + k]))).slice(0, 15);
+    for (const r of lst) {
+      const tr = document.createElement('tr');
+      tr.dataset.key = enc(r.id) + ',' + enc(r.mes_ref);
+      const cells = [td(r.conta, 'cm-l cm-area')];
+      if (!V.sel) cells.push(td(r.area, 'cm-l cm-hide-narrow'));
+      cells.push(td(fMoney(r['orcado' + k])), td(fMoney(r['realizado' + k])), useCell(r['uso' + k], r['status' + k]), pill(r['status' + k]));
+      tr.append(...cells);
+      if (!V.sel) { tr.dataset.click = '1'; tr.addEventListener('click', () => toggleArea(r.area)); }
+      tb.appendChild(tr);
+    }
+    if (!lst.length) { const tr = document.createElement('tr'); const c = td('Nenhuma conta acima do orçado no período.', 'cm-l'); c.colSpan = cols.length; c.style.color = 'var(--color-fg-muted)'; tr.appendChild(c); tb.appendChild(tr); }
+  }
+
+  function legenda(ano, mesRef) {
+    const box = document.getElementById('leg-areas');
+    const it = (sw, t, cls) => { const s = el('span', cls || null, t); s.style.setProperty('--sw', sw); return s; };
+    box.replaceChildren(it('var(--cm-ok)', 'Dentro (até 90%)'), it('var(--cm-warn)', 'Atenção (90% a 100%)'), it('var(--cm-bad)', 'Acima do orçado'), it('var(--cm-sem)', 'Sem orçamento'),
+      it('var(--cm-orc)', ano ? 'Orçado do ano' : 'Orçado do mês'), ...(ano ? [it('var(--color-fg)', 'Orçado até ' + MESES[mesRef - 1], 'cm-lg-line')] : []));
+  }
+
+  // ---------- desenho
+  dash.onData(() => {
+    const m = dash.data('mensal');
+    const pa = dash.data('por_area');
+    const tt = dash.data('totais');
+    const am = dash.data('area_meses');
+    const pm = dash.data('por_mes');
+    const sa = dash.data('sem_orc_acum');
+    const pc = dash.data('por_conta');
+
+    const fechados = pm.status === 'ok' ? pm.data.filter((r) => r.realizado != null).map((r) => r.mes) : [];
+    const L = fechados.length ? Math.max(...fechados) : 12;
+    if (pm.status === 'ok' && dash.params().mes == null) { dash.setParams({ mes: 0 }); return; }
+    const pmes = dash.params().mes;
+    const ano = Number(pmes) === 0;
+    const mes = ano ? 0 : (Number(pmes) || 1);
+    const ref = ano ? L : mes;
+    const areasLista = pa.status === 'ok' ? [...new Set(pa.data.map((r) => r.area))] : [];
+    let sel = dash.params().area || null;
+    if (sel && pa.status === 'ok' && !areasLista.includes(sel)) sel = null;
+    const anoN = m.status === 'ok' && m.data.length ? m.data[0].ano : '';
+    const periodoLongo = ano ? 'Ano de ' + anoN + (fechados.length ? ' · fechado até ' + ML[L - 1] : '') : cap(ML[mes - 1]) + (anoN ? ' de ' + anoN : '');
+    const periodoCurto = ano ? 'ano ' + anoN + ' (até ' + MESES[L - 1] + ')' : MESES[mes - 1] + (anoN ? '/' + anoN : '');
+
+    // seletores
+    if (pm.status === 'ok') {
+      const anoOpt = new Option('Ano inteiro' + (anoN ? ' de ' + anoN : '') + (fechados.length ? ' · até ' + ML[L - 1] : ''), '0');
+      const sep = new Option('──────────', ''); sep.disabled = true;
+      selMes.replaceChildren(anoOpt, sep, ...pm.data.map((r) => new Option(cap(ML[r.mes - 1]) + (anoN ? ' de ' + anoN : '') + (r.realizado == null ? ' · sem fechamento' : ''), String(r.mes))));
+      selMes.value = String(mes);
+    }
+    if (pa.status === 'ok') {
+      selArea.replaceChildren(new Option(window.__rotTodas || 'Todas as áreas', ''), ...areasLista.map((a) => new Option(a, a)));
+      selArea.value = sel || '';
+    }
+    document.getElementById('cm-limpa').hidden = !sel;
+    document.getElementById('cm-voltar-contas').hidden = !sel;
+    const tema = dash.params().tema === 'escuro' ? 'escuro' : 'claro';
+    const wrap = document.querySelector('.cm-wrap');
+    wrap.classList.toggle('cm-claro', tema === 'claro');
+    wrap.classList.toggle('cm-escuro', tema === 'escuro');
+    document.documentElement.dataset.tema = tema;
+    const tb = document.getElementById('cm-tema');
+    const dica = tema === 'escuro' ? 'Mudar para fundo branco' : 'Mudar para fundo preto';
+    tb.setAttribute('aria-label', dica); tb.title = dica;
+
+    // textos
+    document.getElementById('periodo').textContent = (sel ? sel : 'Orçado x Realizado por área') + ' · ' + periodoLongo;
+    document.getElementById('sec-mes').textContent = (sel ? sel + ' · ' : '') + (ano ? 'Resultado do ano' : 'Resultado de ' + ML[mes - 1]);
+    document.getElementById('tit-areas').textContent = 'Comparativo entre áreas · ' + periodoCurto;
+    document.getElementById('nota-areas').textContent = (ano ? 'Faixa clara = orçado do ano · traço = orçado até ' + ML[L - 1] + ' · barra = realizado. % = uso do orçado no período. ' : 'Faixa clara = orçado do mês · barra = realizado. ')
+      + (sel ? sel + ' em destaque; clique nela de novo para voltar a todas.' : 'Clique numa área para ver só ela.');
+    legenda(ano, L);
+    document.getElementById('tit-destaques').textContent = sel ? 'Meses fora do orçamento' : 'Pontos de atenção';
+    document.getElementById('nota-destaques').textContent = sel ? sel + ': meses fechados até ' + ML[ref - 1] + ' em atenção ou acima do orçamento.'
+      : (ano ? 'Áreas em atenção ou acima do orçado no acumulado até ' + ML[L - 1] + ', da maior para a menor diferença.' : 'Áreas em atenção ou acima do orçamento em ' + ML[mes - 1] + ', da maior para a menor diferença.') + ' Clique para ver a área.';
+    document.getElementById('alerta-depara').hidden = !!sel;
+    document.getElementById('sec-evol').textContent = sel ? 'Evolução no ano · ' + sel : 'Evolução no ano';
+    document.getElementById('tit-meses').textContent = 'Orçado x realizado mês a mês' + (sel ? ' · ' + sel : '');
+    document.getElementById('nota-meses').textContent = (sel ? 'Somente ' + sel + '.' : (window.__escopoTotal || 'Total da empresa.')) + ' Clique num mês para analisá-lo.';
+    document.getElementById('sec-det').textContent = sel ? 'Detalhe mês a mês' : 'Detalhe por área';
+    document.getElementById('tit-tabela').textContent = sel ? sel + ' · mês a mês' : 'Orçado x realizado por área · ' + periodoCurto;
+    document.getElementById('nota-tabela').textContent = sel ? 'Acumulado e saldo calculados até cada mês. Clique num mês para analisá-lo.'
+      : (ano ? 'Ordenado pelo uso do orçado no período. Execução do ano = realizado ÷ orçado do ano inteiro. ' : 'Ordenado pelo uso do orçamento no mês. ') + 'Clique numa área para ver só ela.';
+
+    const restoTxt = (v) => (v < 0 ? ' O orçamento do ano já foi superado.' : '');
+    const paraTxt = L < 11 ? ML[L] + ' a dezembro' : L === 11 ? 'dezembro' : 'o ano';
+    // indicadores e resumo
+    const src = sel ? 'por_area' : 'totais';
+    const fonte = sel ? pa : tt;
+    const where = sel ? 'area=' + enc(sel) + '&mes_ref=' + ref : 'mes_ref=' + ref;
+    if (fonte.status === 'ok') {
+      const row = sel ? pa.data.find((r) => r.area === sel && r.mes_ref === ref) : tt.data.find((r) => r.mes_ref === ref);
+      const tot = tt.status === 'ok' ? tt.data.find((r) => r.mes_ref === ref) : null;
+      const amRow = sel && am.status === 'ok' ? am.data.find((r) => r.area === sel && r.mes_ref === ref) : null;
+      drawKPIs({ ano, ref, mes, sel, src, where, row, tot, am: amRow });
+
+      const res = document.getElementById('resumo');
+      res.replaceChildren();
+      const mk = (s, field, text, hl, w) => mark(el('b', hl ? 'cm-hl' : null, text), s, field, w || where);
+      const wa = 'area=' + enc(sel) + '&mes_ref=' + ref;
+      const real = ano ? 'realizado_ytd' : 'realizado_mes';
+      if (!row || row[real] == null) {
+        res.append(tx(ano ? 'O ano ainda não tem realizado lançado.' : cap(ML[mes - 1]) + ' ainda não tem realizado lançado. Selecione um mês já fechado ou o ano inteiro.'));
+      } else if (!sel && !ano) {
+        res.append(tx('Em ' + ML[mes - 1] + ', ' + (window.__escopo || 'a empresa') + ' realizou '), mk(src, 'realizado_mes', fBig(row.realizado_mes)), tx(', '), mk(src, 'uso_mes', fPct(row.uso_mes), row.uso_mes > 1),
+          tx(' do orçado. '), mk(src, 'estouradas', String(row.estouradas), row.estouradas > 0), tx(' das '), mk(src, 'com_orc', String(row.com_orc)), tx(' áreas com orçamento ficaram acima dele e '),
+          mk(src, 'atencao', String(row.atencao)), tx(' estão em atenção. No acumulado do ano o uso é de '), mk(src, 'uso_ytd', fPct(row.uso_ytd), row.uso_ytd > 1),
+          tx(' e o saldo do ano é de '), mk(src, 'saldo_ano', fBig(row.saldo_ano), row.saldo_ano < 0), tx('.' + restoTxt(row.saldo_ano)));
+      } else if (!sel && ano) {
+        res.append(tx('Em ' + anoN + ', até ' + ML[L - 1] + ', ' + (window.__escopo || 'a empresa') + ' realizou '), mk(src, 'realizado_ytd', fBig(row.realizado_ytd)), tx(', '), mk(src, 'uso_ytd', fPct(row.uso_ytd), row.uso_ytd > 1),
+          tx(' do orçado para o período, e já consumiu '), mk(src, 'execucao_ytd', fPct(row.execucao_ytd)), tx(' do orçamento do ano. '),
+          mk(src, 'estouradas_ytd', String(row.estouradas_ytd), row.estouradas_ytd > 0), tx(' das '), mk(src, 'com_orc_ytd', String(row.com_orc_ytd)), tx(' áreas com orçamento estão acima do orçado no acumulado e '),
+          mk(src, 'atencao_ytd', String(row.atencao_ytd)), tx(' em atenção. Saldo para ' + paraTxt + ': '), mk(src, 'saldo_ano', fBig(row.saldo_ano), row.saldo_ano < 0), tx('.' + restoTxt(row.saldo_ano)));
+      } else if (sel && !(row.orcado_ano > 0)) {
+        res.append(tx((ano ? 'Em ' + anoN + ', até ' + ML[L - 1] : 'Em ' + ML[mes - 1]) + ', ' + sel + ' realizou '), mk(src, ano ? 'realizado_ytd' : 'realizado_mes', fBig(row[ano ? 'realizado_ytd' : 'realizado_mes']), true),
+          tx(' sem orçamento aprovado.' + (ano ? '' : ' No ano, já são ')));
+        if (!ano) res.append(mk(src, 'realizado_ytd', fBig(row.realizado_ytd), true), tx(' fora do orçamento.'));
+      } else if (sel && !ano) {
+        res.append(tx('Em ' + ML[mes - 1] + ', ' + sel + ' realizou '), mk(src, 'realizado_mes', fBig(row.realizado_mes)), tx(' de '), mk(src, 'orcado_mes', fBig(row.orcado_mes)),
+          tx(' orçados ('), mk(src, 'uso_mes', fPct(row.uso_mes), row.uso_mes > 1), tx('). No acumulado do ano o uso é de '),
+          mk(src, 'uso_ytd', fPct(row.uso_ytd), row.uso_ytd > 1), tx(' e o saldo do ano é de '), mk(src, 'saldo_ano', fBig(row.saldo_ano), row.saldo_ano < 0), tx('.' + restoTxt(row.saldo_ano)));
+      } else {
+        res.append(tx('Em ' + anoN + ', até ' + ML[L - 1] + ', ' + sel + ' realizou '), mk(src, 'realizado_ytd', fBig(row.realizado_ytd)), tx(' de '), mk(src, 'orcado_ytd', fBig(row.orcado_ytd)),
+          tx(' orçados para o período ('), mk(src, 'uso_ytd', fPct(row.uso_ytd), row.uso_ytd > 1), tx(') e já consumiu '), mk(src, 'execucao_ytd', fPct(row.execucao_ytd)),
+          tx(' do orçamento do ano. Saldo para ' + paraTxt + ': '), mk(src, 'saldo_ano', fBig(row.saldo_ano), row.saldo_ano < 0), tx('.' + restoTxt(row.saldo_ano)));
+      }
+      if (!sel && row && row[real] != null && sa.status === 'ok') {
+        const v = sa.data.find((r) => r.mes_ref === ref);
+        const f = ano ? 'valor_ytd' : 'valor_mes';
+        if (v && v[f] > 0) res.append(tx(' Do realizado, '), mk('sem_orc_acum', f, fBig(v[f]), true, 'mes_ref=' + ref), tx(' foram em contas sem orçamento aprovado.'));
+      }
+      if (sel && amRow && row && row[real] != null && row.orcado_ano > 0) {
+        res.append(tx(' Ficou acima do orçamento em '), mk('area_meses', 'meses_acima', String(amRow.meses_acima), amRow.meses_acima > 0, wa),
+          tx(' de '), mk('area_meses', 'meses_fechados', String(amRow.meses_fechados), false, wa), tx(' meses fechados.'));
+      }
+    } else if (fonte.status === 'error') {
+      document.querySelectorAll('#numeros .cm-kpi-val').forEach((e) => { e.classList.remove('dash-skeleton'); e.textContent = '—'; });
+    }
+
+    // gasto em contas sem orçamento
+    const ncEl = document.getElementById('val-depara');
+    document.getElementById('lab-depara').textContent = 'Gasto em contas sem orçamento aprovado ' + (ano ? 'até ' + ML[L - 1] + ':' : 'no mês:');
+    if (sa.status === 'ok') {
+      const v = sa.data.find((r) => r.mes_ref === ref);
+      const f = ano ? 'valor_ytd' : 'valor_mes';
+      mark(ncEl, 'sem_orc_acum', f, 'mes_ref=' + ref);
+      ncEl.textContent = fMoney(v ? v[f] : null);
+      ncEl.style.color = v && v[f] > 0 ? 'var(--color-bad)' : '';
+    }
+
+    // comparativo, destaques e tabela
+    if (pa.status === 'ok') {
+      const rowsRef = pa.data.filter((r) => r.mes_ref === ref);
+      const rowsArea = sel ? pa.data.filter((r) => r.area === sel).sort((a, b) => a.mes_ref - b.mes_ref) : [];
+      const bullets = rowsRef.map((r) => ano
+        ? { area: r.area, track: r.orcado_ano, alvo: r.orcado_ytd, real: r.realizado_ytd, uso: r.uso_ytd, status: r.status_ytd, src: r }
+        : { area: r.area, track: r.orcado_mes, alvo: r.orcado_mes, real: r.realizado_mes, uso: r.uso_mes, status: r.status_mes, src: r })
+        .sort((a, b) => ((b.uso ?? -1) - (a.uso ?? -1)) || ((b.real || 0) - (a.real || 0)));
+      drawAreas(bullets, sel, (b) => {
+        const r = b.src;
+        return ano
+          ? [tipHead(b.area + ' · até ' + ML[L - 1]), tipLine(stColor(b.status), 'Realizado', fMoney(r.realizado_ytd)), tipLine('var(--color-fg)', 'Orçado no período', fMoney(r.orcado_ytd)), tipLine('var(--cm-track)', 'Orçado do ano', fMoney(r.orcado_ano)), tipLine(null, 'Uso no período', fPct(r.uso_ytd) + ' · ' + stLabel(r.status_ytd)), tipLine(null, 'Execução do ano', fPct(r.execucao_ytd))]
+          : [tipHead(b.area + ' · ' + ML[mes - 1]), tipLine(stColor(b.status), 'Realizado', fMoney(r.realizado_mes)), tipLine('var(--cm-track)', 'Orçado', fMoney(r.orcado_mes)), tipLine(null, 'Diferença', fMoney(r.realizado_mes == null ? null : r.orcado_mes - r.realizado_mes)), tipLine(null, 'Uso', fPct(r.uso_mes) + ' · ' + stLabel(r.status_mes))];
+      });
+
+      const box = document.getElementById('destaques');
+      box.replaceChildren();
+      const fora = (s) => isBad(s) || s === 'Atenção';
+      if (!sel) {
+        const lst = bullets.filter((b) => b.real != null && fora(b.status)).sort((a, b) => (b.real - b.alvo) - (a.real - a.alvo)).slice(0, 4);
+        if (!bullets.some((b) => b.real != null)) box.appendChild(el('div', 'cm-high-empty', 'Período ainda sem realizado lançado.'));
+        else if (!lst.length) box.appendChild(el('div', 'cm-high-empty', ano ? 'Todas as áreas estão dentro do orçado no acumulado.' : 'Todas as áreas estão dentro do orçamento no mês.'));
+        lst.forEach((b) => box.appendChild(highItem(stColor(b.status), b.area, fPct(b.uso), detalhe(b.alvo, b.real), () => toggleArea(b.area))));
+      } else {
+        const lst = rowsArea.filter((r) => r.mes_ref <= ref && r.realizado_mes != null && fora(r.status_mes)).sort((a, b) => b.mes_ref - a.mes_ref);
+        const semOrc = rowsArea.length && !(rowsArea[0].orcado_ano > 0);
+        if (semOrc) box.appendChild(el('div', 'cm-high-empty', sel + ' não tem orçamento aprovado: todo o gasto da área está fora do orçamento. Veja abaixo as contas que mais pesam.'));
+        else if (!lst.length) box.appendChild(el('div', 'cm-high-empty', sel + ' ficou dentro do orçamento em todos os meses fechados até ' + ML[ref - 1] + '.'));
+        lst.forEach((r) => box.appendChild(highItem(stColor(r.status_mes), cap(ML[r.mes_ref - 1]), fPct(r.uso_mes), detalhe(r.orcado_mes, r.realizado_mes), () => dash.setParams({ mes: r.mes_ref }))));
+      }
+
+      drawTabela({ ano, ref, mes, sel }, bullets.map((b) => b.src), rowsArea);
+    } else if (pa.status === 'error') { fail(document.getElementById('graf-areas')); fail(document.getElementById('destaques')); }
+
+    // mês a mês
+    const gM = document.getElementById('graf-meses');
+    if (sel && pa.status === 'ok') {
+      gM.setAttribute('data-source', 'por_area');
+      const rs = pa.data.filter((r) => r.area === sel).sort((a, b) => a.mes_ref - b.mes_ref);
+      drawMeses(rs.map((r) => ({ mes: r.mes_ref, mes_nome: r.mes_nome, orcado: r.orcado_mes, realizado: r.realizado_mes })), mes, sel);
+    } else if (!sel && pm.status === 'ok') {
+      gM.setAttribute('data-source', 'por_mes');
+      drawMeses(pm.data, mes, window.__areaFixa || (window.__escopo === 'a empresa' ? 'Empresa' : 'Suas áreas'));
+    } else if (pm.status === 'error' || pa.status === 'error') fail(gM);
+
+    const periodoC = ano ? 'até ' + ML[L - 1] : ML[mes - 1];
+    document.getElementById('tit-contas').textContent = sel ? sel + ' · por conta · ' + periodoCurto : 'Contas com maior estouro · ' + periodoCurto;
+    document.getElementById('nota-contas').textContent = sel ? 'Todas as contas da área, do maior para o menor realizado (' + periodoC + '). "Sem orçamento" = conta sem orçado aprovado.'
+      : 'As 15 contas com maior valor acima do orçado (' + periodoC + '), incluindo contas sem orçamento aprovado. Clique para ver a área.';
+    if (pc.status === 'ok') drawContas({ ano, ref, sel }, pc.data);
+    else if (pc.status === 'error') fail(document.querySelector('#tb-contas tbody'));
+  });
+})();
+
+</script>
+<style>
+  /* ---- tela de login / cadastro ---- */
+  #cm-wrap { display: none; }
+  #cm-wrap.ativo { display: block; }
+  #auth-gate { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 24px; background: #10203B; font-family: "Public Sans", system-ui, sans-serif; }
+  #auth-gate.oculto { display: none; }
+  .auth-card { width: 100%; max-width: 384px; background: #fff; border-radius: 14px; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  .auth-brand { font-size: 12.5px; letter-spacing: .14em; text-transform: uppercase; color: #F47920; font-weight: 600; }
+  .auth-card h1 { font-family: "Source Serif 4", Georgia, serif; font-weight: 400; font-size: 26px; margin: 4px 0 2px; color: #10203B; }
+  .auth-card .sub { color: #5d6676; font-size: 13.5px; margin: 0 0 18px; }
+  #auth-form { display: flex; flex-direction: column; gap: 12px; }
+  #auth-form label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 600; color: #141922; }
+  #auth-form input { font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid #d8dce2; border-radius: 8px; }
+  #auth-form input:focus-visible { outline: 2px solid #F47920; outline-offset: 1px; }
+  .auth-submit { font: inherit; font-weight: 600; font-size: 15px; color: #fff; background: #10203B; border: 0; border-radius: 8px; padding: 12px; cursor: pointer; margin-top: 4px; }
+  .auth-submit:hover { background: #1b3463; }
+  .auth-submit:disabled { opacity: .6; cursor: not-allowed; }
+  .auth-toggle { background: none; border: 0; color: #1B3463; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; padding: 6px; text-decoration: underline; }
+  .auth-msg { font-size: 13px; color: #5d6676; min-height: 1.2em; }
+  .auth-msg.err { color: #c42b31; }
+  .auth-foot { margin-top: 14px; font-size: 12px; color: #8a92a0; text-align: center; }
+  /* ---- barra do usuario no cabecalho ---- */
+  .cm-usuario { display: flex; align-items: center; gap: 10px; color: #fff; align-self: flex-end; }
+  .cm-usuario-nome { font-size: 13px; color: rgba(255,255,255,.8); max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cm-sair { font: inherit; font-size: 13px; color: #fff; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.28); border-radius: 999px; padding: 4px 14px; cursor: pointer; }
+  .cm-sair:hover { background: rgba(255,255,255,.16); }
+  /* ---- importacao de planilha ---- */
+  .imp-files { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+  .imp-files input[type=file] { font: inherit; font-size: 13px; }
+  .imp-preview { margin-top: 4px; }
+</style>
+
+<div id="auth-gate">
+  <div class="auth-card">
+    <div class="auth-brand">Norte · Controladoria</div>
+    <h1 id="auth-h">Entrar</h1>
+    <p class="sub">Controle dos Mensais</p>
+    <form id="auth-form" onsubmit="return false">
+      <label id="auth-nome-wrap" hidden>Nome<input type="text" id="auth-nome" autocomplete="name" placeholder="Seu nome"></label>
+      <label>E-mail da empresa<input type="email" id="auth-email" autocomplete="email" placeholder="voce@empresa.com"></label>
+      <label>Senha<input type="password" id="auth-senha" autocomplete="current-password" placeholder="••••••••"></label>
+      <button type="button" class="auth-submit" id="auth-submit">Entrar</button>
+      <div class="auth-msg" id="auth-msg"></div>
+      <button type="button" class="auth-toggle" id="auth-toggle">Primeiro acesso — criar conta</button>
+    </form>
+    <div class="auth-foot">Acesso restrito. Cada pessoa vê apenas as áreas liberadas.</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/app.js"></script>
+
+</body></html>
