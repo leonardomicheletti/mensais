@@ -14,7 +14,7 @@
 // =====================================================================
 
 window.CONFIG = {
-  SUPABASE_URL: "https://yurstexfxxazggthqzwd.supabase.co/rest/v1/",
+  SUPABASE_URL: "https://yurstexfxxazggthqzwd.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_etE_nYayQenROc9e6YFSVA_UpqzdM1e",
 
   // Dominios de e-mail que podem criar conta (so para a mensagem na tela;
