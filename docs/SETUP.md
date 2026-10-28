@@ -28,11 +28,9 @@ Em **Authentication → Providers → Email**, deixe **Email** habilitado. Para 
 1. No Supabase, vá em **Project Settings → API** e copie:
    - **Project URL**
    - a chave **anon public**
-2. No repositório, copie o modelo:
-   ```bash
-   cp assets/config.example.js assets/config.js
-   ```
-3. Abra `assets/config.js` e cole a URL e a chave anon nos campos indicados.
+2. Abra o arquivo `assets/config.js` (pode ser direto no GitHub, botão do lápis)
+   e cole a URL e a chave anon nos campos `SUPABASE_URL` e `SUPABASE_ANON_KEY`.
+   Salve (commit). Se o site já estiver publicado, ele se atualiza sozinho em ~1 min.
 
 > A chave **anon** é pública de propósito — pode aparecer no navegador. Quem protege os dados é o RLS. **Nunca** use aqui a chave `service_role`.
 
@@ -40,14 +38,28 @@ Os domínios de e-mail autorizados já vêm preenchidos (`cscdoesporte.com.br`, 
 - `assets/config.js` (campo `ALLOWED_DOMAINS`) — para a mensagem na tela;
 - `supabase/schema.sql`, função `check_email_domain` — a trava de verdade no banco.
 
-## 4. Publicar o site
+## 4. Publicar o site (GitHub Pages)
 
-É um site estático (uma pasta de arquivos). Qualquer hospedagem de site estático serve. Opções gratuitas e fáceis:
+O repositório já traz o workflow `.github/workflows/deploy.yml`, que publica o site
+no **GitHub Pages** a cada push na `main`. Para ligar o Pages (uma vez só):
 
-- **Cloudflare Pages** ou **Vercel** ou **Netlify**: conecte este repositório do GitHub; sem build; a pasta a publicar é a raiz do projeto. Lembre de subir o `assets/config.js` (ele não vai pelo Git; configure-o no painel da hospedagem ou crie o arquivo no deploy).
-- **GitHub Pages**: também funciona (repositório privado exige plano pago para Pages privado; o site tem login de qualquer forma).
+1. No GitHub, vá em **Settings → Pages**.
+2. Em **Build and deployment → Source**, escolha **GitHub Actions**.
+3. Vá em **Actions → "Publicar no GitHub Pages" → Run workflow** (ou reexecute a
+   última execução). Em ~1 minuto o site fica no ar.
 
-Depois de publicado, copie o endereço (ex.: `https://mensais.pages.dev`) e cole em **Supabase → Authentication → URL Configuration → Site URL**.
+O endereço será `https://leonardomicheletti.github.io/mensais/`.
+
+> O repositório precisa estar **público** para o Pages gratuito (já está). Mesmo
+> público, os dados ficam protegidos: o site só mostra números depois do login e
+> cada pessoa vê só a sua área (ver docs/SECURITY.md).
+
+Depois de publicado, copie o endereço e cole em
+**Supabase → Authentication → URL Configuration → Site URL**.
+
+> Alternativas que mantêm o repositório privado (e também grátis): **Cloudflare
+> Pages**, **Vercel** ou **Netlify** — conecte o repositório, sem build, raiz do
+> projeto.
 
 ## 5. Virar administrador
 
