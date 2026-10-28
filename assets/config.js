@@ -14,8 +14,8 @@
 // =====================================================================
 
 window.CONFIG = {
-  SUPABASE_URL: "https://SEU-PROJETO.supabase.co",
-  SUPABASE_ANON_KEY: "SUA-CHAVE-ANON-PUBLICA",
+  SUPABASE_URL: "https://yurstexfxxazggthqzwd.supabase.co/rest/v1/",
+  SUPABASE_ANON_KEY: "sb_publishable_etE_nYayQenROc9e6YFSVA_UpqzdM1e",
 
   // Dominios de e-mail que podem criar conta (so para a mensagem na tela;
   // a trava de verdade esta em supabase/schema.sql > check_email_domain).
