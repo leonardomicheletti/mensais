@@ -13,7 +13,7 @@
 
 update public.profiles
    set role = 'admin'
- where email = 'controladoria@cscdoesporte.com.br';
+ where email = 'renan.cortes@cscdoesporte.com.br';
 
 -- Confira o resultado:
 --   select id, email, name, role from public.profiles order by criado_em;
@@ -22,5 +22,5 @@ update public.profiles
 -- (aparece no botao "Abrir e-mail" da aba Justificativas). Tambem da para
 -- configurar isso depois, direto pela tabela config.
 update public.config
-   set email_controladoria = 'controladoria@cscdoesporte.com.br'
+   set email_controladoria = 'renan.cortes@cscdoesporte.com.br'
  where id = 1;
